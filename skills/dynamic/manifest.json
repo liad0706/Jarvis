@@ -1,0 +1,128 @@
+{
+  "skills": {
+    "smart_memory": {
+      "name": "smart_memory",
+      "description": "Persistent memory for storing and retrieving structured context.",
+      "file": "smart_memory.py",
+      "actions": [
+        "retrieve",
+        "store",
+        "summary"
+      ],
+      "requirements": [],
+      "created_at": "2026-03-27 00:21:57",
+      "original_request": "Persistent memory skill that stores and retrieves structured long-term context across sessions: user preferences, important facts, project state, past decisions, blockers, and next steps. It should save data locally, update memory safely over time, summarize recent changes, and surface relevant context automatically before responding so the assistant stops repeating questions and can continue work from where it left off."
+    },
+    "apple_tv_remote": {
+      "name": "apple_tv_remote",
+      "description": "Control your paired Apple TV with Jarvis",
+      "file": "apple_tv_remote.py",
+      "actions": [
+        "back",
+        "down",
+        "home",
+        "left",
+        "menu",
+        "play_pause",
+        "right",
+        "select",
+        "up"
+      ],
+      "requirements": [
+        "pyatv"
+      ],
+      "created_at": "2026-03-27 01:47:14",
+      "original_request": "Create an Apple TV remote control skill for the existing paired Apple TV at 10.0.0.32 using pyatv and the stored Companion/AirPlay credentials from the current Jarvis Apple TV integration. It should expose at least OK/select, up, down, left, right, menu, home, play_pause, and back so I can send remote button presses immediately."
+    },
+    "camera_manager": {
+      "name": "camera_manager",
+      "description": "Discover local webcams (OpenCV/DirectShow) and optional RTSP cameras",
+      "file": "camera_manager.py",
+      "actions": [
+        "add",
+        "discover",
+        "list",
+        "remove",
+        "test_stream"
+      ],
+      "requirements": [
+        "opencv-python"
+      ],
+      "created_at": "2026-03-27 16:25:00",
+      "original_request": "Create a new local skill for adding cameras to Jarvis. It should discover IP cameras on the LAN using ONVIF when possible, accept manual camera details like IP, username, password, port, RTSP URL, or snapshot URL, verify connectivity, test the video stream, capture a snapshot preview, and save the camera configuration for later use. Include actions to discover cameras, test a stream, add a camera, list configured cameras, and remove a camera. Prefer free local tools and libraries such as Python, ONVIF, OpenCV, ffmpeg, and Home Assistant compatible configuration where relevant."
+    },
+    "camera_vision": {
+      "name": "camera_vision",
+      "description": "Local webcam discover + PNG snapshots (vision_attach_path for GPT/Codex/Ollama)",
+      "file": "camera_vision.py",
+      "actions": [
+        "discover",
+        "get_stream",
+        "take_snapshot"
+      ],
+      "requirements": [
+        "opencv-python"
+      ],
+      "created_at": "2026-03-27 16:51:08",
+      "original_request": "לתקן ולהרחיב את יכולת המצלמות כך שניתן יהיה לגלות מצלמות ברשת המקומית גם בלי התלות החסרה aiounivention, להתחבר למצלמות ONVIF ו-RTSP, להציג רשימת מצלמות, לבדוק זרם וידאו, ולצלם תמונה עדכנית מהמצלמה כדי שאוכל לענות מה אני רואה דרך המצלמה."
+    },
+    "voice_input": {
+      "name": "voice_input",
+      "description": "Record and transcribe speech from the default microphone using a local engine.",
+      "file": "voice_input.py",
+      "actions": [
+        "start_recording",
+        "stop_recording",
+        "transcribe_latest_clip"
+      ],
+      "requirements": [
+        "pydub",
+        "faster-whisper"
+      ],
+      "created_at": "2026-03-27 17:11:27",
+      "original_request": "Create a new local Jarvis skill for voice input on Windows. It should record from the default microphone, support short recordings and push-to-talk, transcribe Hebrew and English speech fully offline using a free local engine such as faster-whisper or whisper.cpp, save audio under the Jarvis data folder, and expose simple actions to start recording, stop recording, and transcribe the latest clip with clear error handling."
+    },
+    "chat_image_sender": {
+      "name": "chat_image_sender",
+      "description": "Sends image files directly back into the current chat conversation.",
+      "file": "chat_image_sender.py",
+      "actions": [
+        "send_file_to_chat",
+        "send_screen_capture_to_chat"
+      ],
+      "requirements": [],
+      "created_at": "2026-03-27 17:17:16",
+      "original_request": "Create a new skill that can send image files directly back into the current chat conversation. It should support two main actions: send_screen_capture_to_chat and send_file_to_chat. The skill must be able to take an existing image path such as a screenshot or camera snapshot and attach/send that image into the chat so the user receives the actual image, not just the file path. It should work with images produced by system_screenshot and camera_vision_take_snapshot, and be designed for local use inside Jarvis on Windows."
+    },
+    "lg_tv": {
+      "name": "lg_tv",
+      "description": "Control an LG webOS TV on the local network.",
+      "file": "lg_tv.py",
+      "actions": [
+        "mute",
+        "pair",
+        "set_volume",
+        "status",
+        "unmute",
+        "volume_down",
+        "volume_up"
+      ],
+      "requirements": [
+        "aiowebostv"
+      ],
+      "created_at": "2026-03-28 12:00:56",
+      "original_request": "Create a dynamic skill to control an LG webOS TV on the local network. It should discover and pair with the TV, persist credentials, and expose actions for status, volume_up, volume_down, set_volume, mute, and unmute. Use a Python library suitable for LG webOS TVs such as bscpylgtv or aiowebostv, with SSDP/discovery support and WebSocket control. I need to use it immediately to try raising and lowering the volume on the user's LG TV."
+    },
+    "auto_builder": {
+      "name": "auto_builder",
+      "description": "Automatically builds new skills for Jarvis based on user requests.",
+      "file": "auto_builder.py",
+      "actions": [
+        "check"
+      ],
+      "requirements": [],
+      "created_at": "2026-03-28 15:10:51",
+      "original_request": "יכולת בנייה עצמית מלאה לג׳רוויס: לזהות מתי חסר כלי או מיומנות לביצוע בקשת משתמש, לבדוק אם כבר קיימת יכולת מתאימה, ואם לא ליצור מיומנות חדשה באופן אוטומטי, לחבר אותה למערכת, להריץ בדיקת עשן בסיסית, ואז להשתמש בה מיד לביצוע הבקשה. היכולת חייבת לכבד את הכלל הבא: לפני הוספת יכולת חדשה בעתיד, לבקש אישור מפורש מהמשתמש ורק אחרי אישור ליצור אותה. נדרש פלט ברור עם שם המיומנות שנוצרה, מה היא יודעת לעשות, ואיך היא אומתה."
+    }
+  }
+}

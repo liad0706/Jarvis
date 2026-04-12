@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - מסמכים</title>
+<style>
+  :root {
+    --bg: #08111d;
+    --bg2: #101b30;
+    --bg3: #17263d;
+    --border: #263851;
+    --text: #edf3fb;
+    --muted: #9db0c5;
+    --cyan: #22d3ee;
+    --blue: #60a5fa;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(34,211,238,0.14), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(96,165,250,0.12), transparent 28%),
+      linear-gradient(180deg, #08111d, #0d1727 58%, #122038);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(8,17,29,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1440px; margin: 0 auto; padding: 28px 20px 40px; }
+  .hero {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .panel {
+    background: rgba(16,27,48,0.92);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: 0 28px 60px rgba(0,0,0,0.25);
+  }
+  .panel h1, .panel h2 { margin-top: 0; }
+  .muted { color: var(--muted); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 18px;
+  }
+  .stat {
+    background: rgba(23,38,61,0.78);
+    border: 1px solid rgba(38,56,81,0.85);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .stat strong { display: block; font-size: 1.5rem; margin-bottom: 4px; }
+  .field, .stack { display: grid; gap: 10px; }
+  .stack { margin-top: 14px; }
+  input, textarea, button {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 11px 13px;
+    font: inherit;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  button {
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  button:hover { transform: translateY(-1px); border-color: var(--cyan); }
+  .primary {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #051120;
+    border: none;
+    font-weight: 700;
+  }
+  .secondary { width: auto; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .banner {
+    margin-top: 14px;
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(38,56,81,0.9);
+    background: rgba(23,38,61,0.72);
+  }
+  .banner.good { border-color: rgba(52,211,153,0.45); color: var(--green); }
+  .banner.warn { border-color: rgba(251,191,36,0.45); color: var(--yellow); }
+  .banner.bad { border-color: rgba(248,113,113,0.45); color: var(--red); }
+  .docs {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .doc, .result {
+    background: rgba(23,38,61,0.8);
+    border: 1px solid rgba(38,56,81,0.85);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .doc-head, .result-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .meta { color: var(--muted); font-size: 0.92rem; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(34,211,238,0.12);
+    color: var(--cyan);
+    font-size: 0.84rem;
+  }
+  .excerpt {
+    margin-top: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #dbe7f5;
+  }
+  .empty {
+    padding: 26px 18px;
+    text-align: center;
+    border: 1px dashed rgba(38,56,81,0.9);
+    border-radius: 18px;
+    color: var(--muted);
+  }
+  @media (max-width: 1080px) {
+    .hero, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html" class="active">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <section class="panel">
+      <h1>Document RAG</h1>
+      <p class="muted">טעינת PDF, Markdown, קוד, JSON, מסמכי לימוד והערות אישיות אל מאגר הידע של Jarvis, ואז חיפוש ותשובות לפי תוכן אמיתי מתוך הקבצים.</p>
+
+      <div class="stats">
+        <div class="stat"><strong id="docCount">0</strong><span class="muted">Documents</span></div>
+        <div class="stat"><strong id="chunkCount">0</strong><span class="muted">Chunks</span></div>
+        <div class="stat"><strong id="resultCount">0</strong><span class="muted">Last Query Hits</span></div>
+      </div>
+
+      <div class="field">
+        <label for="filePath">נתיב מסמך</label>
+        <input id="filePath" placeholder="C:\Users\User\Desktop\notes\math.pdf" />
+      </div>
+      <div class="toolbar">
+        <button class="primary secondary" onclick="ingestDocument()">הוסף למאגר</button>
+        <button class="secondary" onclick="loadDocuments()">רענן רשימה</button>
+      </div>
+      <div id="statusBanner" class="banner" style="display:none"></div>
+
+      <h2 style="margin-top:26px">מסמכים טעונים</h2>
+      <div id="documentsList" class="docs"></div>
+    </section>
+
+    <section class="panel">
+      <h2>שאל את המסמכים</h2>
+      <p class="muted">שאל שאלה חופשית, ו-Jarvis יחפש בתוך ה-chunks שנשמרו מהקבצים שכבר נטענו.</p>
+      <div class="stack">
+        <textarea id="questionBox" placeholder="למשל: מה הדרישות של הפרויקט?&#10;או: סכם לי את הפרק על אינטגרלים"></textarea>
+        <button class="primary" onclick="queryDocuments()">חפש במסמכים</button>
+      </div>
+
+      <h2 style="margin-top:24px">תוצאות</h2>
+      <div id="resultsList"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+function showBanner(message, tone = 'good') {
+  const banner = document.getElementById('statusBanner');
+  banner.textContent = message;
+  banner.className = `banner ${tone}`;
+  banner.style.display = 'block';
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function loadDocuments() {
+  const response = await fetch('/api/documents');
+  const data = await response.json();
+  const documents = data.documents || [];
+  const container = document.getElementById('documentsList');
+  const totalChunks = documents.reduce((sum, doc) => sum + Number(doc.chunk_count || 0), 0);
+
+  document.getElementById('docCount').textContent = documents.length;
+  document.getElementById('chunkCount').textContent = totalChunks;
+
+  if (!documents.length) {
+    container.innerHTML = '<div class="empty">עדיין לא נטענו מסמכים. אפשר להתחיל עם PDF, Markdown, טקסט, קוד או הערות לימודים.</div>';
+    return;
+  }
+
+  container.innerHTML = documents.map((doc) => `
+    <article class="doc">
+      <div class="doc-head">
+        <div>
+          <strong>${escapeHtml(doc.file_name)}</strong>
+          <div class="meta">${escapeHtml(doc.file_path)}</div>
+        </div>
+        <div class="pill">${doc.chunk_count || 0} chunks</div>
+      </div>
+      <div class="toolbar">
+        <button class="secondary" onclick="removeDocument(${JSON.stringify(doc.file_path)})">הסר מהמאגר</button>
+        <span class="meta">נטען ב-${escapeHtml(doc.ingested_at || '')}</span>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function ingestDocument() {
+  const filePath = document.getElementById('filePath').value.trim();
+  if (!filePath) {
+    showBanner('צריך להכניס נתיב לקובץ לפני ingest.', 'warn');
+    return;
+  }
+
+  const response = await fetch('/api/documents/ingest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: filePath }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    showBanner(data.detail || data.error || 'טעינת המסמך נכשלה.', 'bad');
+    return;
+  }
+
+  document.getElementById('filePath').value = '';
+  showBanner(data.message || 'המסמך נטען בהצלחה.', 'good');
+  await loadDocuments();
+}
+
+async function removeDocument(filePath) {
+  const response = await fetch('/api/documents/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: filePath }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    showBanner(data.detail || data.error || 'הסרת המסמך נכשלה.', 'bad');
+    return;
+  }
+
+  showBanner(data.message || 'המסמך הוסר מהמאגר.', 'good');
+  await loadDocuments();
+}
+
+async function queryDocuments() {
+  const question = document.getElementById('questionBox').value.trim();
+  const resultsList = document.getElementById('resultsList');
+  if (!question) {
+    showBanner('צריך להכניס שאלה לפני חיפוש.', 'warn');
+    return;
+  }
+
+  resultsList.innerHTML = '<div class="empty">מחפש בתוך המסמכים...</div>';
+  const response = await fetch('/api/documents/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    document.getElementById('resultCount').textContent = '0';
+    resultsList.innerHTML = `<div class="empty">${escapeHtml(data.detail || data.error || 'החיפוש נכשל.')}</div>`;
+    return;
+  }
+
+  const results = data.results || [];
+  document.getElementById('resultCount').textContent = data.result_count || results.length || 0;
+
+  if (!results.length) {
+    resultsList.innerHTML = `<div class="empty">${escapeHtml(data.message || 'לא נמצאו תוצאות רלוונטיות.')}</div>`;
+    return;
+  }
+
+  resultsList.innerHTML = results.map((result) => `
+    <article class="result">
+      <div class="result-head">
+        <div>
+          <strong>${escapeHtml(result.file_name)}</strong>
+          <div class="meta">${escapeHtml(result.file_path)}</div>
+        </div>
+        <div class="pill">score ${escapeHtml(result.score)}</div>
+      </div>
+      <div class="meta" style="margin-top:10px">chunk #${escapeHtml(result.chunk_index)} · matched ${escapeHtml(result.matched_keywords)} keywords</div>
+      <div class="excerpt">${escapeHtml(result.content)}</div>
+    </article>
+  `).join('');
+}
+
+loadDocuments();
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - Memory Browser</title>
+<style>
+  :root {
+    --bg: #08111d;
+    --bg2: #101a2d;
+    --bg3: #18253b;
+    --border: #27364f;
+    --text: #eef3fb;
+    --muted: #9fb1c6;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --violet: #a78bfa;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(34,211,238,0.14), transparent 30%),
+      linear-gradient(180deg, #08111d, #0d1727 58%, #11213a);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(8,17,29,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1360px; margin: 0 auto; padding: 28px 20px 40px; }
+  .hero {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+  .panel {
+    background: rgba(16,26,45,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .stat { background: rgba(24,37,59,0.8); border: 1px solid var(--border); border-radius: 16px; padding: 14px; text-align: center; }
+  .stat strong { display: block; font-size: 1.8rem; color: var(--cyan); }
+  .muted { color: var(--muted); }
+  .search {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  input, button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 10px 12px;
+    font: inherit;
+  }
+  input { flex: 1; min-width: 220px; }
+  button { cursor: pointer; }
+  .primary {
+    background: linear-gradient(135deg, var(--cyan), #60a5fa);
+    color: #04101e;
+    border: none;
+    font-weight: 700;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    background: rgba(24,37,59,0.7);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .tab.active { color: var(--text); border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.12); }
+  .content { display: none; }
+  .content.active { display: block; }
+  .list { display: grid; gap: 12px; }
+  .card {
+    background: rgba(24,37,59,0.78);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .key { color: var(--cyan); font-weight: 700; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tag {
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .tag.good { color: var(--green); border-color: rgba(52,211,153,0.35); }
+  .tag.type { color: var(--violet); border-color: rgba(167,139,250,0.35); }
+  .danger { color: var(--red); border-color: rgba(248,113,113,0.4); }
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .empty { color: var(--muted); text-align: center; padding: 50px 12px; }
+  @media (max-width: 1120px) {
+    .hero, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html" class="active">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <section class="panel">
+      <h1 style="margin-top:0">Memory Browser</h1>
+      <p class="muted">תצוגה ויזואלית ל-facts, episodic memories, patterns ו-feedback. אפשר גם למחוק facts ו-episodes בלי לחפש ידנית במסד.</p>
+      <div class="stats">
+        <div class="stat"><strong id="factCount">0</strong><span class="muted">Facts</span></div>
+        <div class="stat"><strong id="episodeCount">0</strong><span class="muted">Episodes</span></div>
+        <div class="stat"><strong id="patternCount">0</strong><span class="muted">Patterns</span></div>
+        <div class="stat"><strong id="feedbackCount">0</strong><span class="muted">Feedback</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">חיפוש מהיר בזיכרון</h2>
+      <div class="search">
+        <input id="searchInput" placeholder="חפש מילה, אדם, החלטה או העדפה..." />
+        <button class="primary" onclick="searchMemory()">חפש</button>
+        <button onclick="loadAll()">נקה</button>
+      </div>
+      <pre id="searchResults" class="muted" style="margin-top:14px">תוצאות החיפוש יופיעו כאן.</pre>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="facts">Facts</button>
+      <button class="tab" data-tab="episodes">Episodes</button>
+      <button class="tab" data-tab="patterns">Patterns</button>
+      <button class="tab" data-tab="feedback">Feedback</button>
+    </div>
+
+    <div id="facts" class="content active"><div id="factsList" class="list"></div></div>
+    <div id="episodes" class="content"><div id="episodesList" class="list"></div></div>
+    <div id="patterns" class="content"><div id="patternsList" class="list"></div></div>
+    <div id="feedback" class="content"><div id="feedbackList" class="list"></div></div>
+  </section>
+</div>
+
+<script>
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach((tab) => tab.addEventListener('click', () => {
+  tabs.forEach((item) => item.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelectorAll('.content').forEach((item) => item.classList.remove('active'));
+  document.getElementById(tab.dataset.tab).classList.add('active');
+}));
+
+function esc(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value);
+  return div.innerHTML;
+}
+
+function fmtTime(value) {
+  if (!value) return '';
+  const date = new Date(typeof value === 'number' ? value * 1000 : value);
+  return date.toLocaleString('he-IL');
+}
+
+function emptyState(message) {
+  return `<div class="empty">${message}</div>`;
+}
+
+async function loadFacts() {
+  const response = await fetch('/api/memory/facts');
+  const data = await response.json();
+  const facts = data.facts || {};
+  const keys = Object.keys(facts);
+  document.getElementById('factCount').textContent = String(keys.length);
+  document.getElementById('factsList').innerHTML = keys.length ? keys.map((key) => `
+    <div class="card">
+      <div class="head">
+        <div class="key">${esc(key)}</div>
+        <button class="danger" onclick="deleteFact('${esc(key)}')">מחק</button>
+      </div>
+      <pre>${esc(typeof facts[key] === 'object' ? JSON.stringify(facts[key], null, 2) : facts[key])}</pre>
+      <div class="meta"><span class="tag type">fact</span></div>
+    </div>
+  `).join('') : emptyState('אין facts שמורים כרגע.');
+}
+
+async function loadEpisodes() {
+  const response = await fetch('/api/memory/episodes');
+  const data = await response.json();
+  const episodes = data.episodes || [];
+  document.getElementById('episodeCount').textContent = String(episodes.length);
+  document.getElementById('episodesList').innerHTML = episodes.length ? episodes.map((episode) => `
+    <div class="card">
+      <div class="head">
+        <div class="key">${esc(episode.content || 'Episode')}</div>
+        <button class="danger" onclick="deleteEpisode(${episode.id})">מחק</button>
+      </div>
+      ${episode.metadata ? `<pre>${esc(JSON.stringify(episode.metadata, null, 2))}</pre>` : ''}
+      <div class="meta">
+        <span class="tag type">${esc(episode.memory_type || 'episodic')}</span>
+        ${episode.created_at ? `<span class="tag">${fmtTime(episode.created_at)}</span>` : ''}
+        ${episode.recalled_count != null ? `<span class="tag good">נשלף ${episode.recalled_count} פעמים</span>` : ''}
+      </div>
+    </div>
+  `).join('') : emptyState('אין episodic memories עדיין.');
+}
+
+async function loadPatterns() {
+  const response = await fetch('/api/memory/patterns');
+  const data = await response.json();
+  const patterns = data.patterns || [];
+  document.getElementById('patternCount').textContent = String(patterns.length);
+  document.getElementById('patternsList').innerHTML = patterns.length ? patterns.map((pattern) => `
+    <div class="card">
+      <div class="head">
+        <div class="key">${esc(pattern.name || pattern.pattern || 'Pattern')}</div>
+      </div>
+      <pre>${esc(pattern.description || JSON.stringify(pattern, null, 2))}</pre>
+      <div class="meta">
+        ${pattern.confidence != null ? `<span class="tag good">confidence ${(pattern.confidence * 100).toFixed(0)}%</span>` : ''}
+        ${pattern.occurrences ? `<span class="tag">${pattern.occurrences} מופעים</span>` : ''}
+      </div>
+    </div>
+  `).join('') : emptyState('עדיין אין patterns שנלמדו.');
+}
+
+async function loadFeedback() {
+  const response = await fetch('/api/memory/feedback');
+  const data = await response.json();
+  const feedback = data.feedback || [];
+  document.getElementById('feedbackCount').textContent = String(feedback.length);
+  document.getElementById('feedbackList').innerHTML = feedback.length ? feedback.map((entry) => `
+    <div class="card">
+      <div class="head">
+        <div class="key">${esc(entry.action_type || 'feedback')}</div>
+      </div>
+      <pre>${esc(entry.action_detail || '')}</pre>
+      <div class="meta">
+        ${entry.reaction ? `<span class="tag good">${esc(entry.reaction)}</span>` : '<span class="tag">pending</span>'}
+        ${entry.timestamp ? `<span class="tag">${fmtTime(entry.timestamp)}</span>` : ''}
+      </div>
+    </div>
+  `).join('') : emptyState('אין feedback entries כרגע.');
+}
+
+async function deleteFact(key) {
+  if (!confirm(`למחוק את ה-fact "${key}"?`)) return;
+  await fetch(`/api/memory/facts/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  await loadFacts();
+}
+
+async function deleteEpisode(id) {
+  if (!confirm(`למחוק את episode #${id}?`)) return;
+  await fetch(`/api/memory/episodes/${id}`, { method: 'DELETE' });
+  await loadEpisodes();
+}
+
+async function searchMemory() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (!query) {
+    document.getElementById('searchResults').textContent = 'תוצאות החיפוש יופיעו כאן.';
+    await loadAll();
+    return;
+  }
+  const response = await fetch(`/api/memory/search?q=${encodeURIComponent(query)}`);
+  const data = await response.json();
+  document.getElementById('searchResults').textContent = JSON.stringify(data, null, 2);
+}
+
+async function loadAll() {
+  await Promise.all([loadFacts(), loadEpisodes(), loadPatterns(), loadFeedback()]);
+}
+
+loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - אוטומציות</title>
+<style>
+  :root {
+    --bg: #09111f;
+    --bg2: #101a2d;
+    --bg3: #17253b;
+    --border: #26354f;
+    --text: #edf3fb;
+    --muted: #95a8bd;
+    --cyan: #22d3ee;
+    --violet: #93c5fd;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(147,197,253,0.18), transparent 30%),
+      linear-gradient(180deg, #09111f, #0d1626 60%, #132137);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(9,17,31,0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1320px; margin: 0 auto; padding: 28px 20px 40px; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .panel {
+    background: rgba(16,26,45,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+  .list { display: grid; gap: 12px; }
+  .item {
+    background: rgba(23,37,59,0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+  input, textarea, select {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 10px 12px;
+    font: inherit;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr 120px auto;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: end;
+  }
+  button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 10px 14px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .primary {
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    color: #04101e;
+    font-weight: 700;
+    border: none;
+  }
+  .danger { color: var(--danger); border-color: rgba(248,113,113,0.4); }
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: rgba(9,17,31,0.8);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 12px;
+    margin: 8px 0 0;
+  }
+  @media (max-width: 1180px) {
+    .layout, .row, .action-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html" class="active">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="layout">
+    <section class="panel">
+      <h1 style="margin-top:0">אוטומציות פעילות</h1>
+      <p class="meta">מנוע trigger-based א-לה IFTTT, יושב על EventBus של Jarvis.</p>
+      <div id="automationList" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">צור אוטומציה</h2>
+      <div class="row">
+        <div>
+          <label for="name">שם</label>
+          <input id="name" placeholder="When Home - Lights + Music" />
+        </div>
+        <div>
+          <label for="trigger">Trigger Event</label>
+          <select id="trigger"></select>
+        </div>
+        <div class="full">
+          <label for="conditions">Conditions JSON</label>
+          <textarea id="conditions" placeholder='{"owner":"User"}'></textarea>
+        </div>
+      </div>
+
+      <div id="actions"></div>
+      <button onclick="addActionRow()">הוסף פעולה</button>
+
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="cooldown">Cooldown Seconds</label>
+          <input id="cooldown" type="number" value="60" />
+        </div>
+        <div>
+          <label for="description">תיאור</label>
+          <input id="description" placeholder="Presence detected -> turn on lights" />
+        </div>
+      </div>
+
+      <button class="primary" onclick="createAutomation()">שמור אוטומציה</button>
+    </section>
+  </div>
+</div>
+
+<template id="actionTemplate">
+  <div class="action-row">
+    <div>
+      <label>Skill</label>
+      <input class="skill" placeholder="smart_home" />
+    </div>
+    <div>
+      <label>Action</label>
+      <input class="action" placeholder="turn_on" />
+    </div>
+    <div>
+      <label>Params JSON</label>
+      <input class="params" placeholder='{"device":"light.living_room"}' />
+    </div>
+    <div>
+      <label>Delay</label>
+      <input class="delay" type="number" value="0" />
+    </div>
+    <button class="danger" onclick="this.parentElement.remove()">הסר</button>
+  </div>
+</template>
+
+<script>
+const actionContainer = document.getElementById('actions');
+
+function addActionRow() {
+  const tpl = document.getElementById('actionTemplate');
+  actionContainer.appendChild(tpl.content.cloneNode(true));
+}
+
+function safeJson(text, fallback) {
+  if (!text.trim()) return fallback;
+  return JSON.parse(text);
+}
+
+async function loadEvents() {
+  const response = await fetch('/api/automations/events');
+  const data = await response.json();
+  const select = document.getElementById('trigger');
+  select.innerHTML = (data.events || []).map((event) => `<option value="${event}">${event}</option>`).join('');
+}
+
+async function loadAutomations() {
+  const response = await fetch('/api/automations');
+  const data = await response.json();
+  const list = document.getElementById('automationList');
+  const automations = data.automations || [];
+  if (!automations.length) {
+    list.innerHTML = '<div class="item">אין אוטומציות מוגדרות כרגע.</div>';
+    return;
+  }
+  list.innerHTML = automations.map((automation) => `
+    <div class="item">
+      <div class="head">
+        <div>
+          <strong>${automation.name}</strong>
+          <div class="meta">${automation.trigger_event} · cooldown ${automation.cooldown_seconds}s</div>
+        </div>
+        <button class="danger" onclick="deleteAutomation('${automation.name}')">מחק</button>
+      </div>
+      <div>${automation.description || ''}</div>
+      <pre>${JSON.stringify(automation.actions || [], null, 2)}</pre>
+    </div>
+  `).join('');
+}
+
+async function createAutomation() {
+  try {
+    const actions = Array.from(document.querySelectorAll('.action-row')).map((row) => ({
+      skill_name: row.querySelector('.skill').value.trim(),
+      action_name: row.querySelector('.action').value.trim(),
+      params: safeJson(row.querySelector('.params').value, {}),
+      delay_seconds: Number(row.querySelector('.delay').value || 0),
+    })).filter((action) => action.skill_name && action.action_name);
+
+    if (!actions.length) {
+      alert('צריך לפחות פעולה אחת.');
+      return;
+    }
+
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      trigger_event: document.getElementById('trigger').value,
+      actions,
+      conditions: safeJson(document.getElementById('conditions').value, {}),
+      cooldown_seconds: Number(document.getElementById('cooldown').value || 60),
+      description: document.getElementById('description').value.trim(),
+    };
+
+    if (!payload.name) {
+      alert('צריך שם לאוטומציה.');
+      return;
+    }
+
+    const response = await fetch('/api/automations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      alert('שמירת האוטומציה נכשלה.');
+      return;
+    }
+    document.getElementById('name').value = '';
+    document.getElementById('conditions').value = '';
+    document.getElementById('description').value = '';
+    actionContainer.innerHTML = '';
+    addActionRow();
+    await loadAutomations();
+  } catch (error) {
+    alert(`בדוק את ה-JSON. ${error}`);
+  }
+}
+
+async function deleteAutomation(name) {
+  await fetch(`/api/automations/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  await loadAutomations();
+}
+
+addActionRow();
+loadEvents();
+loadAutomations();
+</script>
+</body>
+</html>

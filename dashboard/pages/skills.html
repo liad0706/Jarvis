@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - Skills ומודלים</title>
+<style>
+  :root {
+    --bg: #08111d;
+    --bg2: #101b30;
+    --bg3: #17263d;
+    --border: #263851;
+    --text: #edf3fb;
+    --muted: #9db0c5;
+    --cyan: #22d3ee;
+    --blue: #60a5fa;
+    --green: #34d399;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top right, rgba(34,211,238,0.15), transparent 30%),
+      linear-gradient(180deg, #08111d, #0d1727 55%, #122038);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(8,17,29,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1380px; margin: 0 auto; padding: 28px 20px 40px; }
+  .layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+  .panel {
+    background: rgba(16,27,48,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+  .cards { display: grid; gap: 12px; }
+  .skill {
+    background: rgba(23,38,61,0.82);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .row {
+    display: grid;
+    grid-template-columns: 180px 180px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(38,56,81,0.8);
+  }
+  .row:last-child { border-bottom: none; }
+  input, select {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 9px 12px;
+    font: inherit;
+  }
+  button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 9px 12px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .primary {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #051120;
+    border: none;
+    font-weight: 700;
+  }
+  .good { color: var(--green); }
+  .bad { color: var(--red); }
+  .tools { color: var(--muted); font-size: 0.88rem; margin-top: 8px; }
+  @media (max-width: 1180px) {
+    .layout, .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html" class="active">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="layout">
+    <section class="panel">
+      <h1 style="margin-top:0">Skill Store</h1>
+      <p class="meta">הפעלה/כיבוי, export/import בארכיון ZIP, ומעקב אחרי dependencies.</p>
+      <div style="display:flex; gap:8px; margin:12px 0 18px; flex-wrap:wrap">
+        <input id="importPath" placeholder="C:\path\to\skill.zip" />
+        <button class="primary" onclick="importSkill()">Import ZIP</button>
+      </div>
+      <div id="skillsList" class="cards"></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Model Routing</h2>
+      <p class="meta">הגדרות routing לפי סוג משימה: greetings, tools, vision, code, research.</p>
+      <div id="routesList"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+async function loadSkills() {
+  const response = await fetch('/api/skills');
+  const data = await response.json();
+  const skills = data.skills || [];
+  const list = document.getElementById('skillsList');
+  if (!skills.length) {
+    list.innerHTML = '<div class="skill">אין metadata ל-skills כרגע.</div>';
+    return;
+  }
+  list.innerHTML = skills.map((skill) => `
+    <div class="skill">
+      <div class="head">
+        <div>
+          <strong>${skill.name}</strong>
+          <div class="meta">${skill.description || ''}</div>
+        </div>
+        <div class="${skill.enabled ? 'good' : 'bad'}">${skill.enabled ? 'Enabled' : 'Disabled'}</div>
+      </div>
+      <div class="tools">version ${skill.version || '1.0.0'} · author ${skill.author || 'Jarvis'}${skill.dependencies?.length ? ` · deps ${skill.dependencies.join(', ')}` : ''}</div>
+      <div class="actions">
+        <button onclick="${skill.enabled ? `disableSkill('${skill.name}')` : `enableSkill('${skill.name}')`}">${skill.enabled ? 'Disable' : 'Enable'}</button>
+        ${skill.is_dynamic ? `<button onclick="exportSkill('${skill.name}')">Export ZIP</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function enableSkill(name) {
+  const response = await fetch(`/api/skills/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  if (!response.ok) alert('ההפעלה נכשלה. ייתכן שצריך restart כדי לטעון את ה-skill מחדש.');
+  await loadSkills();
+}
+
+async function disableSkill(name) {
+  const response = await fetch(`/api/skills/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    alert(error.detail || 'הכיבוי נכשל.');
+  }
+  await loadSkills();
+}
+
+async function exportSkill(name) {
+  const response = await fetch(`/api/skills/${encodeURIComponent(name)}/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ output_dir: 'data/exports' }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    alert(data.detail || 'ה-export נכשל.');
+    return;
+  }
+  alert(`הארכיון נוצר בנתיב:\n${data.archive_path}`);
+}
+
+async function importSkill() {
+  const archivePath = document.getElementById('importPath').value.trim();
+  if (!archivePath) {
+    alert('צריך להכניס נתיב לקובץ ZIP.');
+    return;
+  }
+  const response = await fetch('/api/skills/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ archive_path: archivePath }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    alert(data.detail || 'ה-import נכשל.');
+    return;
+  }
+  document.getElementById('importPath').value = '';
+  await loadSkills();
+}
+
+async function loadRoutes() {
+  const response = await fetch('/api/model-routes');
+  const data = await response.json();
+  const routes = data.routes || {};
+  const container = document.getElementById('routesList');
+  container.innerHTML = Object.entries(routes).map(([task, route]) => `
+    <div class="row">
+      <div><strong>${task}</strong><div class="meta">${route.description || ''}</div></div>
+      <select id="provider-${task}">
+        ${['ollama', 'lm_studio', 'openai', 'codex', 'anthropic', 'claude'].map((provider) => `
+          <option value="${provider}" ${provider === route.preferred_provider ? 'selected' : ''}>${provider}</option>
+        `).join('')}
+      </select>
+      <input id="model-${task}" value="${route.preferred_model || ''}" placeholder="model override (optional)" />
+      <button class="primary" onclick="saveRoute('${task}')">שמור</button>
+    </div>
+  `).join('');
+}
+
+async function saveRoute(task) {
+  const provider = document.getElementById(`provider-${task}`).value;
+  const model = document.getElementById(`model-${task}`).value.trim() || null;
+  const response = await fetch(`/api/model-routes/${encodeURIComponent(task)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider, model }),
+  });
+  if (!response.ok) {
+    alert('שמירת ה-route נכשלה.');
+    return;
+  }
+  await loadRoutes();
+}
+
+loadSkills();
+loadRoutes();
+</script>
+</body>
+</html>

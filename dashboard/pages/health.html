@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - בריאות מערכת</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --bg2: #11192c;
+    --bg3: #18233a;
+    --border: #26344f;
+    --text: #e8edf5;
+    --muted: #9db0c4;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(34,211,238,0.15), transparent 30%),
+      linear-gradient(180deg, #0b1120, #0f1828 60%, #132033);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(11,17,32,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1380px; margin: 0 auto; padding: 28px 20px 40px; }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  h1 { margin: 0; }
+  .muted { color: var(--muted); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .card, .panel {
+    background: rgba(17,25,44,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+  .stat { font-size: 2rem; font-weight: 800; margin-top: 8px; }
+  .panel-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 16px;
+  }
+  .section-title { margin: 0 0 14px; font-size: 1.1rem; }
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: rgba(24,35,58,0.8);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    color: #d7e6ff;
+    max-height: 520px;
+    overflow: auto;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(24,35,58,0.7);
+  }
+  .ok { color: var(--green); }
+  .warn { color: var(--yellow); }
+  .bad { color: var(--red); }
+  .list { display: grid; gap: 10px; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(38,52,79,0.7);
+  }
+  .row:last-child { border-bottom: none; }
+  @media (max-width: 1150px) {
+    .grid, .panel-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html" class="active">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>בריאות המערכת</h1>
+      <div class="muted">סטטוס חי של ה־LLM, המכשירים, הזיכרון, ה־routes וההתראות.</div>
+    </div>
+    <button class="pill" onclick="loadHealth()">רענן</button>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="muted">Provider</div><div class="stat" id="providerStat">-</div></div>
+    <div class="card"><div class="muted">Model</div><div class="stat" id="modelStat">-</div></div>
+    <div class="card"><div class="muted">Devices</div><div class="stat" id="devicesStat">-</div></div>
+    <div class="card"><div class="muted">Unread Notifications</div><div class="stat" id="notificationsStat">-</div></div>
+  </div>
+
+  <div class="panel-grid">
+    <section class="panel">
+      <h2 class="section-title">מדדי ליבה</h2>
+      <div class="list" id="metricsList"></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Circuit Breaker</h2>
+      <div id="circuitBox" class="list"></div>
+    </section>
+  </div>
+
+  <div class="panel-grid" style="margin-top:16px">
+    <section class="panel">
+      <h2 class="section-title">Routes</h2>
+      <pre id="routesBox">טוען...</pre>
+    </section>
+    <section class="panel">
+      <h2 class="section-title">Memory / Device Snapshot</h2>
+      <div class="list" id="snapshotBox"></div>
+    </section>
+  </div>
+
+  <section class="panel" style="margin-top:16px">
+    <h2 class="section-title">Recent Notifications</h2>
+    <pre id="notificationsBox">טוען...</pre>
+  </section>
+</div>
+
+<script>
+function renderList(target, rows) {
+  target.innerHTML = rows.map(([label, value]) => `
+    <div class="row">
+      <div class="muted">${label}</div>
+      <div>${value}</div>
+    </div>
+  `).join('');
+}
+
+function fmt(value) {
+  if (value == null) return '-';
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return String(value);
+}
+
+async function loadHealth() {
+  const response = await fetch('/api/health');
+  const health = await response.json();
+  const llm = health.llm || {};
+  const devices = health.devices || {};
+  const memory = health.memory || {};
+  const notifications = health.notifications || {};
+  const metrics = health.metrics || {};
+  const circuit = health.circuit_breakers || {};
+
+  document.getElementById('providerStat').textContent = llm.provider || '-';
+  document.getElementById('modelStat').textContent = llm.model || '-';
+  document.getElementById('devicesStat').textContent = fmt(devices.count || 0);
+  document.getElementById('notificationsStat').textContent = fmt(notifications.unread_count || 0);
+
+  const counterRows = Object.entries(metrics.counters || {});
+  const histRows = Object.entries(metrics.histograms || {}).map(([name, info]) => {
+    return [name, `count ${info.count}, avg ${fmt(info.avg)}, p95 ${fmt(info.p95)}`];
+  });
+  renderList(document.getElementById('metricsList'), [...counterRows, ...histRows].length ? [...counterRows, ...histRows] : [['אין נתונים', 'עדיין לא נאספו metrics']]);
+
+  const circuitRows = Object.entries(circuit).map(([name, info]) => {
+    const statusClass = info.state === 'closed' ? 'ok' : info.state === 'open' ? 'bad' : 'warn';
+    return [name, `<span class="${statusClass}">${info.state}</span> · failures ${fmt(info.failures)}`];
+  });
+  renderList(document.getElementById('circuitBox'), circuitRows.length ? circuitRows : [['LLM', '<span class="ok">closed</span>']]);
+
+  document.getElementById('routesBox').textContent = JSON.stringify(llm.routes || {}, null, 2);
+  renderList(document.getElementById('snapshotBox'), [
+    ['Facts', fmt(memory.facts_count || 0)],
+    ['Episodes', fmt(memory.episodes_count || 0)],
+    ['Conversation Length', fmt(memory.conversation_length || 0)],
+    ['Devices On', fmt(devices.on || 0)],
+    ['Devices Off', fmt(devices.off || 0)],
+  ]);
+  document.getElementById('notificationsBox').textContent = JSON.stringify(notifications.recent || [], null, 2);
+}
+
+loadHealth();
+setInterval(loadHealth, 10000);
+</script>
+</body>
+</html>
