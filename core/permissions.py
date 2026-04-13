@@ -97,7 +97,12 @@ class PermissionGate:
         self.audit_log = audit_log
         self.safe_mode = safe_mode
         self.dry_run = dry_run
-        self.auto_approve = {RiskLevel.READ, RiskLevel.WRITE, RiskLevel.EXTERNAL, RiskLevel.CRITICAL}
+        # READ and WRITE are always auto-approved.
+        # EXTERNAL is auto-approved only when explicitly enabled (e.g. Spotify, smart home).
+        # CRITICAL (code execution, 3D print start, etc.) always requires user confirmation.
+        self.auto_approve: set[RiskLevel] = {RiskLevel.READ, RiskLevel.WRITE}
+        if auto_approve_external:
+            self.auto_approve.add(RiskLevel.EXTERNAL)
         self._risk_overrides = dict(DEFAULT_RISK_OVERRIDES)
         self.llm_classifier = llm_classifier
 

@@ -1,21 +1,24 @@
 # Jarvis
 
-A fully local, personal AI assistant inspired by Iron Man's JARVIS. Runs on your machine, speaks Hebrew, controls your smart home, and executes tasks autonomously — no cloud required.
+A local-first, personal AI assistant inspired by Iron Man's JARVIS. Runs on your machine, speaks Hebrew, controls your smart home, and executes tasks autonomously.
 
 ---
 
 ## Features
 
-- **100% Local** — powered by [Ollama](https://ollama.ai), no data leaves your machine
-- **Multi-provider LLM** — Ollama, OpenAI, Anthropic/Claude, Codex with automatic fallback
+- **Local-first** — LLM inference via [Ollama](https://ollama.ai); conversation data stays on your machine by default
+- **Multi-provider LLM** — Ollama (local), OpenAI, Anthropic/Claude, Codex with automatic fallback
 - **Hybrid memory** — FAISS vector search + BM25 + SQLite, persisted across sessions
 - **33+ skills** — code generation, music, smart home, 3D printing, browser automation, calendar, and more
-- **Voice loop** — continuous wake-word listening, STT (Google Speech) + TTS (ElevenLabs)
+- **Voice loop** — continuous wake-word listening, STT (Google Speech\*) + TTS (ElevenLabs\*)
 - **Real-time dashboard** — web UI with WebSocket streaming at `localhost:8550`
 - **Multi-channel** — WhatsApp, Telegram, Discord, CLI
 - **Proactive engine** — autonomously suggests and executes tasks based on time and context
 - **Self-improvement** — generates and installs new skills on its own
 - **Security** — 6 layers: permission gates, sandbox, audit log, circuit breaker, rate limiter, policy engine
+
+> \* Voice mode uses cloud services: Google Speech Recognition (STT) and ElevenLabs (TTS).
+> Set `JARVIS_VOICE_ENABLED=false` to keep everything fully local.
 
 ---
 
@@ -30,24 +33,24 @@ A fully local, personal AI assistant inspired by Iron Man's JARVIS. Runs on your
 ## Setup
 
 ```bash
-# 1. Clone the repo
+# 1. Clone
 git clone https://github.com/liad0706/Jarvis.git
 cd Jarvis
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Run the one-shot setup script (installs everything from scratch)
+bash setup.sh
 
 # 3. Configure
-cp .env.example .env
-# Edit .env with your settings
+nano .env   # fill in your API keys
 
-# 4. Pull required Ollama models
-ollama pull qwen2.5:7b
-ollama pull nomic-embed-text
-
-# 5. Run
+# 4. Run
+source .venv/bin/activate
 python main.py
 ```
+
+> `setup.sh` installs Python 3.11+, venv, all pip packages, Playwright browsers,
+> Ollama, the recommended embedding model, and the Node.js WhatsApp bridge.
+> Works on Ubuntu/Debian and macOS. See `bash setup.sh --help` for flags.
 
 ---
 
