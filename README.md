@@ -134,22 +134,61 @@ Jarvis/
 
 ---
 
+## Minimum Working Path
+
+Just want to run a local AI assistant with chat + memory + dashboard?
+
+```bash
+git clone https://github.com/liad0706/Jarvis.git && cd Jarvis
+bash setup.sh --skip-whatsapp
+```
+
+In `.env`, set only:
+```env
+JARVIS_LLM_PROVIDER=ollama
+JARVIS_OLLAMA_MODEL=qwen2.5:7b
+JARVIS_DASHBOARD_ENABLED=true
+JARVIS_VOICE_ENABLED=false
+JARVIS_WHATSAPP_ENABLED=false
+```
+
+Then `python main.py` → open `http://localhost:8550`. Done.
+Everything else (voice, smart home, WhatsApp, Telegram, 3D printing) is optional.
+
+---
+
 ## Skills
 
-| Skill | Description |
+### Stable
+
+| Skill | What it does |
 |-------|-------------|
 | `system_control` | Shell commands, screenshots, clipboard, volume |
-| `spotify_controller` | Play, pause, search music |
+| `spotify_controller` | Play, pause, search, queue music |
 | `smart_home` | Control lights and devices via Home Assistant |
-| `apple_tv` | Remote control for Apple TV |
-| `creality_print` | Start, pause, monitor 3D prints |
-| `browser_agent` | Browser automation with Playwright |
-| `code_writer` | Generate code in any language |
-| `file_manager` | Read, write, search files |
-| `web_research` | Web search and scraping |
-| `document_rag` | Q&A over local documents |
+| `code_writer` | Generate, explain, and run code |
+| `file_manager` | Read, write, search local files |
+| `web_research` | Web search and page scraping |
+| `weather_skill` | Current weather and forecast |
+| `timer_skill` | Set timers and reminders |
 | `scheduler_skill` | Schedule tasks at specific times |
-| `self_improve` | Auto-generate and install new skills |
+| `memory_skill` | Query and manage long-term memory |
+| `document_rag` | Q&A over local documents |
+| `calendar_skill` | Read and create calendar events |
+
+### Experimental
+
+| Skill | Status | Notes |
+|-------|--------|-------|
+| `apple_tv` | Experimental | Requires pyatv pairing |
+| `creality_print` / `creality_api_skill` | Experimental | Creality K1 Max only |
+| `browser_agent` | Experimental | Playwright-based, may break on site changes |
+| `appointment_booker` | Experimental | Hardcoded to specific booking site |
+| `self_improve` | Experimental | Generates + installs new skills at runtime |
+| `ruview_sensor` | Experimental | WiFi-based human presence (CSI hardware required) |
+| `model_downloader` | Experimental | Auto-downloads 3D models from Printables |
+| `iphone_skill` | Experimental | iOS shortcuts integration |
+| `screen_reader` | Experimental | Vision-based screen understanding |
 
 ---
 

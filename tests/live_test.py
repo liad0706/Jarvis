@@ -2,6 +2,8 @@
 Live integration tests for Jarvis.
 Tests real connections to Ollama, Spotify, filesystem, etc.
 """
+import pytest
+pytestmark = pytest.mark.live
 
 import asyncio
 import sys

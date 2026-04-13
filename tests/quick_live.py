@@ -1,4 +1,6 @@
 """Quick live test - all Jarvis systems."""
+import pytest
+pytestmark = pytest.mark.live
 import asyncio
 import sys
 import time
