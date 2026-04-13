@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - יומן</title>
+<style>
+  :root {
+    --bg: #07111f;
+    --bg2: #0d1b2a;
+    --bg3: #14263a;
+    --border: #20344a;
+    --text: #e7edf5;
+    --muted: #93a6bb;
+    --accent: #2dd4bf;
+    --accent2: #60a5fa;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top right, rgba(45,212,191,0.15), transparent 30%),
+      linear-gradient(180deg, #07111f, #091523 55%, #0c1b2b);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(7,17,31,0.85);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover {
+    color: var(--text);
+    background: rgba(45,212,191,0.12);
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 28px 20px 40px; }
+  .hero {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .panel {
+    background: rgba(13,27,42,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+  }
+  h1 { margin: 0 0 8px; font-size: 2rem; }
+  .subtitle { color: var(--muted); line-height: 1.6; }
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(170px, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .day-card {
+    background: rgba(20,38,58,0.78);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    min-height: 240px;
+  }
+  .day-card.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(45,212,191,0.2); }
+  .day-title { font-weight: 700; margin-bottom: 6px; }
+  .day-date { color: var(--muted); font-size: 0.92rem; margin-bottom: 14px; }
+  .event {
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.18);
+    margin-bottom: 10px;
+  }
+  .event:last-child { margin-bottom: 0; }
+  .event-time { color: var(--accent2); font-weight: 700; margin-bottom: 6px; }
+  .event-title { font-weight: 600; margin-bottom: 6px; }
+  .event-meta { color: var(--muted); font-size: 0.88rem; }
+  .event button {
+    margin-top: 10px;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(248,113,113,0.4);
+    border-radius: 10px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+  input, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 11px 12px;
+    font: inherit;
+  }
+  .full { grid-column: 1 / -1; }
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  button.primary, button.secondary {
+    border: none;
+    border-radius: 12px;
+    padding: 11px 16px;
+    font: inherit;
+    cursor: pointer;
+  }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #04101e;
+    font-weight: 700;
+  }
+  button.secondary {
+    background: rgba(96,165,250,0.12);
+    color: var(--text);
+    border: 1px solid rgba(96,165,250,0.2);
+  }
+  .empty { color: var(--muted); font-size: 0.95rem; }
+  @media (max-width: 1100px) {
+    .hero { grid-template-columns: 1fr; }
+    .week-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html" class="active">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <section class="panel">
+      <h1>יומן שבועי</h1>
+      <p class="subtitle">תצוגה חזותית לאירועים הקרובים, תזכורות ולוח הזמנים של Jarvis. אפשר להוסיף אירוע חדש, למחוק אירוע קיים, ולעקוב אחרי השבוע במקום לכתוב הכול בצ׳אט.</p>
+      <div class="actions">
+        <button class="secondary" onclick="loadWeek()">רענן שבוע</button>
+        <button class="secondary" onclick="jumpToday()">קפוץ להיום</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">הוסף אירוע</h2>
+      <div class="form-grid">
+        <div class="full">
+          <label for="title">כותרת</label>
+          <input id="title" placeholder="שיעור מתמטיקה / תזכורת / פגישה" />
+        </div>
+        <div>
+          <label for="date">תאריך</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label for="time">שעה</label>
+          <input id="time" type="time" />
+        </div>
+        <div>
+          <label for="category">קטגוריה</label>
+          <select id="category">
+            <option value="personal">אישי</option>
+            <option value="school">בית ספר</option>
+            <option value="appointment">תור</option>
+            <option value="reminder">תזכורת</option>
+          </select>
+        </div>
+        <div>
+          <label for="recurring">חזרה</label>
+          <select id="recurring">
+            <option value="once">חד פעמי</option>
+            <option value="daily">יומי</option>
+            <option value="weekly">שבועי</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="addEvent()">שמור אירוע</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div id="weekGrid" class="week-grid"></div>
+  </section>
+</div>
+
+<script>
+const weekGrid = document.getElementById('weekGrid');
+
+function categoryLabel(category) {
+  return {
+    school: 'בית ספר',
+    appointment: 'תור',
+    personal: 'אישי',
+    reminder: 'תזכורת',
+  }[category] || category || 'אחר';
+}
+
+function toDateKey(date) {
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function startOfWeek() {
+  const now = new Date();
+  const day = (now.getDay() + 6) % 7;
+  now.setHours(0, 0, 0, 0);
+  now.setDate(now.getDate() - day);
+  return now;
+}
+
+function renderWeek(events) {
+  const days = [];
+  const start = startOfWeek();
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    days.push(day);
+  }
+
+  const grouped = Object.create(null);
+  for (const event of events) {
+    const key = event.date;
+    grouped[key] ||= [];
+    grouped[key].push(event);
+  }
+
+  weekGrid.innerHTML = days.map((day) => {
+    const key = day.toISOString().slice(0, 10);
+    const dayEvents = grouped[key] || [];
+    const title = day.toLocaleDateString('he-IL', { weekday: 'long' });
+    const dateText = day.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    return `
+      <div class="day-card ${key === todayKey() ? 'today' : ''}" id="day-${key}">
+        <div class="day-title">${title}</div>
+        <div class="day-date">${dateText}</div>
+        ${dayEvents.length ? dayEvents.map((event) => `
+          <div class="event">
+            <div class="event-time">${event.time || '--:--'}</div>
+            <div class="event-title">${event.title || 'ללא כותרת'}</div>
+            <div class="event-meta">${categoryLabel(event.category)}${event.recurring && event.recurring !== 'once' ? ` · ${event.recurring}` : ''}</div>
+            <button onclick="deleteEvent('${event.id}')">מחק</button>
+          </div>
+        `).join('') : '<div class="empty">אין אירועים ביום הזה</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadWeek() {
+  const response = await fetch('/api/calendar/week');
+  const data = await response.json();
+  renderWeek(data.events || []);
+}
+
+async function addEvent() {
+  const title = document.getElementById('title').value.trim();
+  const date = document.getElementById('date').value;
+  const time = document.getElementById('time').value;
+  if (!title || !date || !time) {
+    alert('צריך למלא כותרת, תאריך ושעה.');
+    return;
+  }
+  const payload = {
+    title,
+    date,
+    time,
+    category: document.getElementById('category').value,
+    recurring: document.getElementById('recurring').value,
+  };
+  const response = await fetch('/api/calendar/events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    alert('לא הצלחתי להוסיף את האירוע.');
+    return;
+  }
+  document.getElementById('title').value = '';
+  await loadWeek();
+}
+
+async function deleteEvent(eventId) {
+  const response = await fetch(`/api/calendar/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+  if (!response.ok) {
+    alert('לא הצלחתי למחוק את האירוע.');
+    return;
+  }
+  await loadWeek();
+}
+
+function jumpToday() {
+  const el = document.getElementById(`day-${todayKey()}`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+loadWeek();
+</script>
+</body>
+</html>

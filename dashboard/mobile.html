@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e17">
+<link rel="manifest" href="/manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<title>Jarvis</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg2: #111827;
+    --bg3: #1a2233;
+    --border: #1e2d45;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --bg2: #ffffff;
+    --bg3: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text2: #64748b;
+    --cyan: #0891b2;
+    --green: #059669;
+    --yellow: #d97706;
+    --red: #dc2626;
+    --purple: #7c3aed;
+    --blue: #2563eb;
+  }
+  [data-theme="light"] .msg.user {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    border-color: #93c5fd;
+  }
+  [data-theme="light"] .msg.assistant .msg-body pre {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .msg.assistant .msg-body pre code { color: #1e293b; }
+  [data-theme="light"] .msg.assistant .msg-body code { background: rgba(0,0,0,0.06); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .conn-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    transition: background 0.3s;
+  }
+  .conn-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── Session row ── */
+  .session-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .session-row select {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .session-row .sess-btn {
+    width: 40px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--cyan);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .session-row .sess-btn.danger { color: var(--red); font-size: 16px; }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    padding: 6px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    flex-shrink: 0;
+    transition: color 0.3s;
+  }
+  .status-bar.thinking { color: var(--yellow); }
+  .status-bar.tool { color: var(--purple); }
+  .status-bar.working { color: var(--yellow); }
+  .status-bar.error { color: var(--red); }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .status-bar.thinking .status-dot,
+  .status-bar.tool .status-dot,
+  .status-bar.working .status-dot { animation: pulse 1s infinite; }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── Messages ── */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    animation: msgIn 0.2s ease-out;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user {
+    background: linear-gradient(135deg, #1e3a5f, #1a2d4a);
+    border: 1px solid #2a4a6f;
+    margin-left: auto;
+    border-bottom-left: 6px;
+  }
+  .msg.assistant {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    margin-right: auto;
+    border-bottom-right-radius: 6px;
+  }
+  .msg.progress {
+    background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(34,211,238,0.06));
+    border: 1px dashed rgba(96,165,250,0.45);
+  }
+  .msg.progress.live {
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.12), 0 6px 18px rgba(0,0,0,0.16);
+  }
+  .msg-body { display: inline; }
+  .msg.progress .msg-body { display: block; }
+  .msg-body.streaming::after {
+    content: '▌';
+    color: var(--cyan);
+    animation: blink 0.6s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .msg-progress-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--blue);
+  }
+  .msg-progress-status {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(96,165,250,0.16);
+    color: var(--text2);
+  }
+  .msg.progress.live .msg-progress-status {
+    background: rgba(251,191,36,0.16);
+    color: var(--yellow);
+  }
+  .msg-progress-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .msg-progress-line {
+    position: relative;
+    padding: 8px 10px 8px 14px;
+    border-radius: 10px;
+    background: rgba(15,23,42,0.18);
+    border: 1px solid rgba(148,163,184,0.12);
+  }
+  .msg-progress-line::before {
+    content: '\25CF';
+    position: absolute;
+    inset-inline-start: 7px;
+    top: 8px;
+    font-size: 8px;
+    color: var(--cyan);
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text2);
+    gap: 12px;
+  }
+  .empty-state .big-j {
+    font-size: 64px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.3;
+  }
+  .empty-state p { font-size: 14px; opacity: 0.5; }
+
+  /* ── Input Bar ── */
+  .input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + var(--safe-bottom));
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-bar input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+    direction: rtl;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .input-bar input:focus { border-color: var(--cyan); }
+  .input-bar input::placeholder { color: var(--text2); }
+
+  .btn-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .btn-icon:active { transform: scale(0.9); }
+
+  .btn-send {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: var(--bg);
+  }
+  .btn-send:disabled { opacity: 0.3; }
+
+  .btn-mic {
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    color: var(--text2);
+  }
+  .btn-mic.recording {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(248,113,113,0.1);
+    animation: micPulse 1.2s infinite;
+  }
+  @keyframes micPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(248,113,113,0); }
+  }
+
+  /* ── Stop Button (floating) ── */
+  .stop-btn {
+    display: none;
+    position: fixed;
+    bottom: calc(80px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 28px;
+    padding: 10px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(248,113,113,0.4);
+    animation: stopIn 0.2s ease-out;
+  }
+  .stop-btn.visible { display: block; }
+  @keyframes stopIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Speaker icon on messages ── */
+  .speak-toggle {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    vertical-align: middle;
+  }
+  .speak-toggle:hover, .speak-toggle.active { opacity: 1; color: var(--cyan); }
+
+  /* ── Markdown in assistant messages ── */
+  .msg.assistant .msg-body p { margin-bottom: 8px; }
+  .msg.assistant .msg-body p:last-child { margin-bottom: 0; }
+  .msg.assistant .msg-body ul,
+  .msg.assistant .msg-body ol { padding-inline-start: 20px; margin-bottom: 8px; }
+  .msg.assistant .msg-body li { margin-bottom: 2px; }
+  .msg.assistant .msg-body strong { color: var(--cyan); }
+  .msg.assistant .msg-body code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+  }
+  .msg.assistant .msg-body pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    margin: 8px 0;
+    direction: ltr;
+    text-align: left;
+  }
+  .msg.assistant .msg-body pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .msg.assistant .msg-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+  }
+  .msg.assistant .msg-body th,
+  .msg.assistant .msg-body td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .msg.assistant .msg-body th {
+    background: var(--bg3);
+    font-weight: 600;
+  }
+  .msg.assistant .msg-body blockquote {
+    border-right: 3px solid var(--cyan);
+    padding-right: 12px;
+    margin: 8px 0;
+    color: var(--text2);
+  }
+  .msg.assistant .msg-body a { color: var(--cyan); text-decoration: none; }
+  .msg.assistant .msg-body a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">JARVIS</div>
+  <div class="header-status">
+    <span id="providerLabel">—</span>
+    <button id="themeToggleBtn" style="background:none;border:none;font-size:18px;cursor:pointer;padding:2px 4px;">☀️</button>
+    <div class="conn-dot" id="connDot"></div>
+  </div>
+</div>
+
+<div class="session-row">
+  <select id="sessionSelect" aria-label="שיחה"></select>
+  <button type="button" class="sess-btn" id="newSessionBtn" title="שיחה חדשה">+</button>
+  <button type="button" class="sess-btn danger" id="deleteSessionBtn" title="מחק שיחה" style="display:none">🗑</button>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="status-dot"></div>
+  <span id="statusText">Ready</span>
+</div>
+
+<div class="messages" id="messages">
+  <div class="empty-state" id="emptyState">
+    <div class="big-j">J</div>
+    <p>Talk or type to start</p>
+  </div>
+</div>
+
+<button class="stop-btn" id="stopBtn">Stop</button>
+
+<div class="input-bar">
+  <input type="text" id="chatInput" placeholder="...הקלד הודעה" autocomplete="off" enterkeyhint="send" />
+  <button class="btn-icon btn-mic" id="micBtn" title="Voice">🎤</button>
+  <button class="btn-icon btn-send" id="sendBtn" title="Send">➤</button>
+</div>
+
+<script>
+// ── Theme (light/dark) ──
+function getAutoTheme() {
+  const h = new Date().getHours();
+  return (h >= 6 && h < 18) ? 'light' : 'dark';
+}
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme === 'light' ? 'light' : '';
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+}
+(function initTheme() {
+  const stored = localStorage.getItem('jarvisTheme');
+  if (stored) applyTheme(stored);
+  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) applyTheme('light');
+  else applyTheme(getAutoTheme());
+})();
+
+// ── State ──
+const $ = id => document.getElementById(id);
+let ws = null;
+let isSending = false;
+let isRecording = false;
+let recognition = null;
+let currentAbort = null;    // AbortController for in-flight chat
+let streamTimer = null;     // typewriter timer
+let streamElement = null;   // element being streamed into
+let isSpeaking = false;
+let autoSpeak = true;       // auto-read assistant responses
+
+const SESSION_STORAGE_KEY = 'jarvisDashboardSessionId';
+const DEFAULT_SESSION_ID = 'default';
+let currentSessionId = localStorage.getItem(SESSION_STORAGE_KEY) || DEFAULT_SESSION_ID;
+const progressStateBySession = Object.create(null);
+let activeProgressBubble = null;
+let activeProgressSessionId = null;
+
+// ── Markdown config ──
+if (typeof marked !== 'undefined') {
+  marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
+}
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function renderMarkdown(text) {
+  if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+    try { return marked.parse(text); } catch { return escapeHtml(text); }
+  }
+  return escapeHtml(text);
+}
+
+function normalizeSessionId(sessionId) {
+  return sessionId == null || sessionId === undefined ? DEFAULT_SESSION_ID : sessionId;
+}
+
+function progressLinesFromContent(content) {
+  return String(content || '')
+    .split(/\r?\n+/)
+    .map(line => line.replace(/^\s*-\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function clearActiveProgressBubble() {
+  if (activeProgressBubble) activeProgressBubble.remove();
+  activeProgressBubble = null;
+  activeProgressSessionId = null;
+}
+
+function createProgressMessageElement(lines, live) {
+  const el = document.createElement('div');
+  el.className = `msg assistant progress${live ? ' live' : ' completed'}`;
+  el.innerHTML = `
+    <div class="msg-progress-head">Jarvis <span class="msg-progress-status">${live ? 'Live' : 'Progress'}</span></div>
+    <div class="msg-body msg-progress-lines"></div>
+  `;
+  const body = el.querySelector('.msg-progress-lines');
+  lines.forEach(line => {
+    const row = document.createElement('div');
+    row.className = 'msg-progress-line';
+    row.textContent = line;
+    body.appendChild(row);
+  });
+  return el;
+}
+
+function ensureLiveProgressBubble(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  if (sid !== currentSessionId) return null;
+  if (activeProgressBubble && activeProgressSessionId === sid) return activeProgressBubble;
+  clearActiveProgressBubble();
+  const state = progressStateBySession[sid];
+  if (!state || !state.lines.length) return null;
+  const el = createProgressMessageElement(state.lines, true);
+  $('messages').appendChild(el);
+  activeProgressBubble = el;
+  activeProgressSessionId = sid;
+  scrollBottom();
+  return el;
+}
+
+function renderLiveProgressBubble(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  if (sid !== currentSessionId) return;
+  const state = progressStateBySession[sid];
+  if (!state || !state.lines.length || state.completed) return;
+  const el = ensureLiveProgressBubble(sid);
+  if (!el) return;
+  const body = el.querySelector('.msg-progress-lines');
+  body.innerHTML = '';
+  state.lines.forEach(line => {
+    const row = document.createElement('div');
+    row.className = 'msg-progress-line';
+    row.textContent = line;
+    body.appendChild(row);
+  });
+  scrollBottom();
+}
+
+function addProgressMsg(content) {
+  const lines = progressLinesFromContent(content);
+  if (!lines.length) return;
+  $('messages').appendChild(createProgressMessageElement(lines, false));
+  scrollBottom();
+}
+
+function recordConversationProgress(sessionId, summary) {
+  const sid = normalizeSessionId(sessionId);
+  const text = String(summary || '').trim();
+  if (!text) return;
+  let state = progressStateBySession[sid];
+  if (!state || state.completed) {
+    if (state && state.completed && activeProgressSessionId === sid) {
+      activeProgressBubble = null;
+      activeProgressSessionId = null;
+    }
+    state = { lines: [], completed: false };
+    progressStateBySession[sid] = state;
+  }
+  if (state.lines[state.lines.length - 1] === text) return;
+  state.lines.push(text);
+  while (state.lines.length > 12) state.lines.shift();
+  renderLiveProgressBubble(sid);
+}
+
+function completeConversationProgress(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  const state = progressStateBySession[sid];
+  if (!state || state.completed) return;
+  state.completed = true;
+  if (activeProgressBubble && activeProgressSessionId === sid) {
+    activeProgressBubble.classList.remove('live');
+    activeProgressBubble.classList.add('completed');
+    const badge = activeProgressBubble.querySelector('.msg-progress-status');
+    if (badge) badge.textContent = 'Done';
+  }
+}
+
+function clearConversationProgressState(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  delete progressStateBySession[sid];
+  if (activeProgressSessionId === sid) clearActiveProgressBubble();
+}
+
+function chatEventForThisSession(ev) {
+  const sid = ev.session_id;
+  if (sid == null || sid === undefined) return true;
+  return sid === currentSessionId;
+}
+
+function applyConversationSnapshot(conv) {
+  clearActiveProgressBubble();
+  const container = $('messages');
+  container.querySelectorAll('.msg, .msg-image').forEach(el => el.remove());
+  const empty = $('emptyState');
+  if (empty) empty.style.display = conv && conv.length ? 'none' : 'block';
+  if (!conv || !conv.length) {
+    renderLiveProgressBubble(currentSessionId);
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  conv.forEach(m => {
+    if (m.type === 'image' && m.url) addImageMsg(m.url);
+    else if (m.type === 'progress' && m.content) addProgressMsg(m.content);
+    else if (m.content) addMsg(m.role, m.content, false);
+  });
+  renderLiveProgressBubble(currentSessionId);
+}
+
+function updateDeleteSessionBtn() {
+  const b = $('deleteSessionBtn');
+  if (!b) return;
+  b.style.display = currentSessionId === DEFAULT_SESSION_ID ? 'none' : 'inline-flex';
+}
+
+async function refreshSessionList() {
+  try {
+    const r = await fetch('/api/chat-sessions');
+    const data = await r.json();
+    const sessions = data.sessions || [];
+    const ids = new Set(sessions.map(s => s.id));
+    if (!ids.has(currentSessionId)) {
+      currentSessionId = DEFAULT_SESSION_ID;
+      localStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+    }
+    const sel = $('sessionSelect');
+    const prev = currentSessionId;
+    sel.innerHTML = '';
+    sessions.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.title || s.id;
+      sel.appendChild(o);
+    });
+    sel.value = prev;
+    updateDeleteSessionBtn();
+  } catch {}
+}
+
+async function selectSession(id) {
+  if (id === currentSessionId) return;
+  currentSessionId = id;
+  localStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+  $('sessionSelect').value = id;
+  updateDeleteSessionBtn();
+  stopStreaming();
+  applyConversationSnapshot([]);
+  await refreshSessionList();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'watch_session', session_id: id }));
+  } else {
+    try {
+      const r = await fetch('/api/conversation?session_id=' + encodeURIComponent(id));
+      const conv = await r.json();
+      applyConversationSnapshot(conv);
+    } catch {}
+  }
+}
+
+async function createSession() {
+  try {
+    const r = await fetch('/api/chat-sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await r.json();
+    if (data.id) await selectSession(data.id);
+  } catch {}
+}
+
+async function deleteCurrentSession() {
+  if (currentSessionId === DEFAULT_SESSION_ID) return;
+  try {
+    const r = await fetch('/api/chat-sessions/' + encodeURIComponent(currentSessionId), { method: 'DELETE' });
+    const data = await r.json();
+    if (data.ok) await selectSession(DEFAULT_SESSION_ID);
+    await refreshSessionList();
+  } catch {}
+}
+
+// ── WebSocket ──
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const q = encodeURIComponent(currentSessionId);
+  ws = new WebSocket(`${proto}//${location.host}/ws?session=${q}`);
+  ws.onopen = () => $('connDot').classList.add('on');
+  ws.onclose = () => { $('connDot').classList.remove('on'); setTimeout(connect, 2000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = e => handleWS(JSON.parse(e.data));
+}
+
+async function pushBrowserNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch {}
+  }
+  if (Notification.permission !== 'granted') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.active) {
+        reg.active.postMessage({ type: 'show-notification', title, body, tag: 'jarvis-mobile' });
+        return;
+      }
+    }
+  } catch {}
+  try { new Notification(title, { body }); } catch {}
+}
+
+function handleWS(data) {
+  if (data.type === 'snapshot') {
+    if (data.session_id != null && data.session_id !== currentSessionId) {
+      if (data.provider) {
+        $('providerLabel').textContent = `${data.provider.name} ${data.provider.model || ''}`;
+      }
+      return;
+    }
+    if (Array.isArray(data.conversation)) {
+      applyConversationSnapshot(data.conversation);
+    }
+    if (data.provider) {
+      $('providerLabel').textContent = `${data.provider.name} ${data.provider.model || ''}`;
+    }
+    return;
+  }
+  if (data.type === 'chat.session_deleted') {
+    clearConversationProgressState(data.session_id);
+    if (data.session_id === currentSessionId) selectSession(DEFAULT_SESSION_ID);
+    else refreshSessionList();
+    return;
+  }
+  switch (data.type) {
+    case 'llm.start': setStatus('thinking', data.round > 0 ? `Thinking (round ${data.round+1})...` : 'Thinking...'); break;
+    case 'llm.complete': if (currentStatusState !== 'working') setStatus('', 'Ready'); break;
+    case 'tool.start': setStatus('tool', `Running: ${data.tool}`); break;
+    case 'tool.complete': if (currentStatusState !== 'working') setStatus(data.has_error ? 'error' : '', data.has_error ? `${data.tool} failed` : 'Ready'); break;
+    case 'task.progress':
+      setStatus('working', data.summary || 'Working...');
+      recordConversationProgress(data.session_id, data.summary || '');
+      break;
+    case 'task.progress.complete':
+      completeConversationProgress(data.session_id);
+      break;
+    case 'chat.user':
+      if (!chatEventForThisSession(data)) break;
+      if (!isSending && data.content) addMsg('user', data.content, false);
+      break;
+    case 'chat.assistant':
+      completeConversationProgress(data.session_id);
+      setStatus('', 'Ready');
+      if (!chatEventForThisSession(data)) break;
+      if (!isSending && data.content) addMsg('assistant', data.content, false);
+      break;
+    case 'chat.assistant.stream_start':
+    case 'chat.assistant.chunk':
+    case 'chat.assistant.stream_end':
+      // Streaming disabled - full response shown only when complete.
+      break;
+    case 'chat.image':
+      completeConversationProgress(data.session_id);
+      if (!chatEventForThisSession(data)) break;
+      if (data.url) addImageMsg(data.url);
+      break;
+    case 'provider.changed':
+      if (data.provider) $('providerLabel').textContent = `${data.provider.name} ${data.provider.model || ''}`;
+      break;
+    case 'model.route':
+      setStatus('thinking', `${data.task_type || 'task'} -> ${data.provider || ''}`);
+      break;
+    case 'notification':
+      pushBrowserNotification(data.title || 'Jarvis', data.message || '');
+      break;
+  }
+}
+
+let currentStatusState = '';
+function setStatus(cls, text) {
+  currentStatusState = cls;
+  const bar = $('statusBar');
+  bar.className = 'status-bar ' + cls;
+  $('statusText').textContent = text;
+}
+
+// ── Messages ──
+function scrollBottom() {
+  const m = $('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function addImageMsg(url) {
+  if (!url) return;
+  const empty = $('emptyState');
+  if (empty) empty.style.display = 'none';
+  const container = $('messages');
+  const el = document.createElement('div');
+  el.className = 'msg assistant msg-image';
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'תמונה';
+  img.loading = 'lazy';
+  img.style.maxWidth = '100%';
+  img.style.borderRadius = '10px';
+  el.appendChild(img);
+  container.appendChild(el);
+  scrollBottom();
+}
+
+function addMsg(role, content, stream) {
+  if (!content) return;
+  // Hide empty state
+  const empty = $('emptyState');
+  if (empty) empty.style.display = 'none';
+
+  const container = $('messages');
+  const el = document.createElement('div');
+  el.className = `msg ${role}`;
+
+  const body = document.createElement('span');
+  body.className = 'msg-body';
+  el.appendChild(body);
+
+  container.appendChild(el);
+  scrollBottom();
+
+  if (stream && role === 'assistant') {
+    typewriter(body, content);
+  } else if (role === 'assistant') {
+    body.innerHTML = renderMarkdown(content);
+  } else {
+    body.textContent = content;
+  }
+
+  // Auto-speak assistant messages
+  if (role === 'assistant' && autoSpeak && content) {
+    speak(content);
+  }
+}
+
+function typewriter(el, text) {
+  // Stop any previous stream
+  stopStreaming();
+
+  const words = text.split(/(\s+)/);
+  let i = 0;
+  const total = words.length;
+  const delay = total > 80 ? 16 : total > 30 ? 24 : 35;
+
+  el.textContent = '';
+  el.classList.add('streaming');
+  streamElement = el;
+
+  function tick() {
+    if (i >= total) {
+      el.classList.remove('streaming');
+      el.innerHTML = renderMarkdown(text);
+      streamElement = null;
+      streamTimer = null;
+      return;
+    }
+    const chunk = total > 100 ? 3 : total > 40 ? 2 : 1;
+    for (let c = 0; c < chunk && i < total; c++, i++) {
+      el.textContent += words[i];
+    }
+    scrollBottom();
+    streamTimer = setTimeout(tick, delay);
+  }
+  tick();
+}
+
+function stopStreaming() {
+  if (streamTimer) {
+    clearTimeout(streamTimer);
+    streamTimer = null;
+  }
+  if (streamElement) {
+    streamElement.classList.remove('streaming');
+    streamElement = null;
+  }
+}
+
+// ── WS Streaming helpers ──
+let _wsStreamEl = null;
+let _wsStreamText = '';
+let _wsStreamMarkdownTimer = null;
+let _wsStreamStartedForRequest = false;
+let _lastAssistantStreamHadContent = true;
+
+function _startStreamingMsg() {
+  stopStreaming();
+  const empty = $('emptyState');
+  if (empty) empty.style.display = 'none';
+  const container = $('messages');
+  const el = document.createElement('div');
+  el.className = 'msg assistant';
+  const body = document.createElement('span');
+  body.className = 'msg-body streaming';
+  el.appendChild(body);
+  container.appendChild(el);
+  _wsStreamEl = body;
+  _wsStreamText = '';
+  _wsStreamStartedForRequest = true;
+  scrollBottom();
+}
+
+function _appendStreamChunk(chunk) {
+  if (!_wsStreamEl) return;
+  _wsStreamText += (_wsStreamText ? ' ' : '') + chunk;
+  _wsStreamEl.textContent = _wsStreamText;
+  scrollBottom();
+  if (_wsStreamMarkdownTimer) clearTimeout(_wsStreamMarkdownTimer);
+  _wsStreamMarkdownTimer = setTimeout(() => {
+    if (_wsStreamEl) _wsStreamEl.innerHTML = renderMarkdown(_wsStreamText);
+    scrollBottom();
+  }, 300);
+}
+
+function _finalizeStreamingMsg() {
+  if (_wsStreamMarkdownTimer) clearTimeout(_wsStreamMarkdownTimer);
+  _lastAssistantStreamHadContent = Boolean(_wsStreamText && _wsStreamText.trim());
+  if (_wsStreamEl) {
+    _wsStreamEl.classList.remove('streaming');
+    _wsStreamEl.innerHTML = renderMarkdown(_wsStreamText);
+    scrollBottom();
+  }
+  if (_wsStreamText && autoSpeak) speak(_wsStreamText);
+  _wsStreamEl = null;
+  _wsStreamText = '';
+}
+
+// ── Chat ──
+async function sendMessage(text) {
+  text = (text || $('chatInput').value).trim();
+  if (!text || isSending) return;
+
+  isSending = true;
+  $('chatInput').value = '';
+  $('sendBtn').disabled = true;
+  $('stopBtn').classList.add('visible');
+
+  addMsg('user', text, false);
+
+  currentAbort = new AbortController();
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, session_id: currentSessionId }),
+      signal: currentAbort.signal,
+    });
+    const data = await r.json();
+    const emptyModelMsg =
+      'המודל לא החזיר טקסט. ודא ש-Ollama רץ וש־JARVIS_OLLAMA_MODEL ב-.env תואם ל־ollama list.';
+    if (data.error) {
+      completeConversationProgress(currentSessionId);
+      addMsg('assistant', data.error, false);
+    } else if (Object.prototype.hasOwnProperty.call(data, 'response')) {
+      let resp = data.response;
+      if (typeof resp !== 'string') {
+        resp = resp == null ? '' : String(resp);
+      }
+      const toShow = resp.trim() || emptyModelMsg;
+      completeConversationProgress(currentSessionId);
+      if (!_wsStreamStartedForRequest) {
+        addMsg('assistant', toShow, false);
+      } else if (!_lastAssistantStreamHadContent) {
+        const container = $('messages');
+        const bodies = container.querySelectorAll('.msg.assistant .msg-body');
+        const lastBody = bodies[bodies.length - 1];
+        if (lastBody) {
+          lastBody.classList.remove('streaming');
+          lastBody.innerHTML = renderMarkdown(toShow);
+          if (autoSpeak) speak(toShow);
+        } else {
+          addMsg('assistant', toShow, false);
+        }
+      }
+      _wsStreamStartedForRequest = false;
+      refreshSessionList();
+    }
+  } catch (err) {
+    completeConversationProgress(currentSessionId);
+    if (err.name !== 'AbortError') {
+      addMsg('assistant', `Connection error`, false);
+    }
+  } finally {
+    isSending = false;
+    _wsStreamStartedForRequest = false;
+    currentAbort = null;
+    $('sendBtn').disabled = false;
+    $('stopBtn').classList.remove('visible');
+    $('chatInput').focus();
+  }
+}
+
+// ── Stop / Interrupt ──
+function stopEverything() {
+  // 1. Abort in-flight request
+  if (currentAbort) currentAbort.abort();
+  completeConversationProgress(currentSessionId);
+  // 2. Stop text streaming
+  stopStreaming();
+  // 3. Stop TTS
+  stopSpeaking();
+  // 4. Tell server
+  fetch('/api/chat/abort', { method: 'POST' }).catch(() => {});
+  // 5. Reset UI
+  $('stopBtn').classList.remove('visible');
+  isSending = false;
+  $('sendBtn').disabled = false;
+  setStatus('', 'Stopped');
+}
+
+$('stopBtn').addEventListener('click', stopEverything);
+
+// ── Send events ──
+$('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+$('sendBtn').addEventListener('click', () => sendMessage());
+
+// ── Voice Input (Web Speech API) ──
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'he-IL';
+  r.interimResults = true;
+  r.continuous = false;
+  r.maxAlternatives = 1;
+
+  r.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    $('chatInput').value = final || interim;
+  };
+
+  r.onend = () => {
+    isRecording = false;
+    $('micBtn').classList.remove('recording');
+    // Auto-send if we got text
+    const text = $('chatInput').value.trim();
+    if (text) sendMessage(text);
+  };
+
+  r.onerror = (e) => {
+    isRecording = false;
+    $('micBtn').classList.remove('recording');
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      console.warn('Speech error:', e.error);
+    }
+  };
+
+  return r;
+}
+
+recognition = initSpeechRecognition();
+
+$('micBtn').addEventListener('click', () => {
+  if (!recognition) {
+    alert('Voice input is not supported in this browser');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    isRecording = false;
+    $('micBtn').classList.remove('recording');
+    return;
+  }
+
+  // Stop speaking if Jarvis is talking (so mic doesn't pick it up)
+  stopSpeaking();
+
+  isRecording = true;
+  $('micBtn').classList.add('recording');
+  $('chatInput').value = '';
+  try {
+    recognition.start();
+  } catch (e) {
+    // Already started
+    isRecording = false;
+    $('micBtn').classList.remove('recording');
+  }
+});
+
+// ── Voice Output (TTS) ──
+function speak(text) {
+  if (!window.speechSynthesis || !text) return;
+  stopSpeaking();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'he-IL';
+  utter.rate = 1.05;
+
+  // Try to pick a Hebrew voice
+  const voices = speechSynthesis.getVoices();
+  const heVoice = voices.find(v => v.lang.startsWith('he'));
+  if (heVoice) utter.voice = heVoice;
+
+  utter.onend = () => { isSpeaking = false; };
+  utter.onerror = () => { isSpeaking = false; };
+
+  isSpeaking = true;
+  speechSynthesis.speak(utter);
+}
+
+function stopSpeaking() {
+  if (window.speechSynthesis) {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+  }
+}
+
+// iOS needs a user gesture to unlock speechSynthesis
+document.addEventListener('touchstart', function unlock() {
+  const utter = new SpeechSynthesisUtterance('');
+  speechSynthesis.speak(utter);
+  document.removeEventListener('touchstart', unlock);
+}, { once: true });
+
+// Load voices (async on some browsers)
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
+// ── PWA Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── Theme Toggle ──
+$('themeToggleBtn').addEventListener('click', () => {
+  const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  localStorage.setItem('jarvisTheme', next);
+});
+
+// ── Init ──
+$('sessionSelect').addEventListener('change', () => {
+  selectSession($('sessionSelect').value);
+});
+$('newSessionBtn').addEventListener('click', () => createSession());
+$('deleteSessionBtn').addEventListener('click', () => deleteCurrentSession());
+
+refreshSessionList().then(() => connect());
+
+// Fetch provider
+fetch('/api/provider').then(r => r.json()).then(d => {
+  $('providerLabel').textContent = `${d.name || '—'} ${d.model || ''}`;
+}).catch(() => {});
+</script>
+</body>
+</html>

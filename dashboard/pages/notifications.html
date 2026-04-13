@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - התראות</title>
+<style>
+  :root {
+    --bg: #0a1020;
+    --bg2: #11192d;
+    --bg3: #18233a;
+    --border: #27344f;
+    --text: #edf3fb;
+    --muted: #9eb0c3;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(34,211,238,0.14), transparent 35%),
+      linear-gradient(180deg, #0a1020, #0d1526 55%, #12203a);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(10,16,32,0.88);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px 40px; }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+  button, select {
+    border-radius: 12px;
+    font: inherit;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .list {
+    display: grid;
+    gap: 12px;
+  }
+  .item {
+    background: rgba(17,25,45,0.92);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    display: grid;
+    gap: 10px;
+  }
+  .item.unread { border-color: rgba(34,211,238,0.35); box-shadow: inset 0 0 0 1px rgba(34,211,238,0.18); }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .title { font-weight: 700; }
+  .meta { color: var(--muted); font-size: 0.92rem; }
+  .badge {
+    display: inline-flex;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+  }
+  .badge.info { background: rgba(34,211,238,0.12); color: var(--cyan); }
+  .badge.warning { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .badge.urgent { background: rgba(248,113,113,0.14); color: var(--red); }
+  .badge.success { background: rgba(52,211,153,0.12); color: var(--green); }
+  .actions { display: flex; gap: 8px; }
+  .empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 60px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html" class="active">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <div class="toolbar">
+    <div>
+      <h1 style="margin:0 0 6px">התראות</h1>
+      <div class="meta">מרכז ההתראות של Jarvis: proactive, automation, dashboard והודעות מערכת.</div>
+    </div>
+    <div class="controls">
+      <select id="filterSelect" onchange="loadNotifications()">
+        <option value="all">הכול</option>
+        <option value="unread">לא נקראו</option>
+      </select>
+      <button onclick="markAllRead()">סמן הכול כנקרא</button>
+      <button onclick="requestBrowserNotifications()">אפשר התראות דפדפן</button>
+    </div>
+  </div>
+
+  <div id="list" class="list"></div>
+</div>
+
+<script>
+const list = document.getElementById('list');
+
+function formatTime(ts) {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleString('he-IL');
+}
+
+function render(items) {
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">אין התראות להצגה כרגע.</div>';
+    return;
+  }
+  list.innerHTML = items.map((item) => `
+    <div class="item ${item.read ? '' : 'unread'}">
+      <div class="head">
+        <div>
+          <div class="title">${item.title || 'התראה'}</div>
+          <div class="meta">${formatTime(item.timestamp)} · ${item.source || 'system'}</div>
+        </div>
+        <div class="badge ${item.level || 'info'}">${item.level || 'info'}</div>
+      </div>
+      <div>${item.message || ''}</div>
+      <div class="actions">
+        ${item.read ? '' : `<button onclick="markRead('${item.id}')">סמן כנקרא</button>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadNotifications() {
+  const unreadOnly = document.getElementById('filterSelect').value === 'unread';
+  const response = await fetch(`/api/notifications?unread_only=${unreadOnly ? 'true' : 'false'}`);
+  const data = await response.json();
+  render(data.notifications || []);
+}
+
+async function markRead(id) {
+  await fetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
+  await loadNotifications();
+}
+
+async function markAllRead() {
+  await fetch('/api/notifications/read-all', { method: 'POST' });
+  await loadNotifications();
+}
+
+async function requestBrowserNotifications() {
+  if (!('Notification' in window)) {
+    alert('הדפדפן הזה לא תומך בהתראות.');
+    return;
+  }
+  const result = await Notification.requestPermission();
+  alert(result === 'granted' ? 'התראות דפדפן הופעלו.' : 'הדפדפן לא אישר התראות.');
+}
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}/ws`);
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === 'notification') {
+      loadNotifications();
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(message.title || 'Jarvis', { body: message.message || '' });
+      }
+    }
+  };
+  ws.onclose = () => setTimeout(connect, 2500);
+}
+
+loadNotifications();
+connect();
+</script>
+</body>
+</html>

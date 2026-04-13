@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - שליטה במכשירים</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg2: #111827;
+    --bg3: #1a2233;
+    --border: #1e2d45;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  /* ── Nav ── */
+  .topnav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topnav .logo {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-left: 24px;
+    text-decoration: none;
+  }
+  .topnav a {
+    color: var(--text2);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  .topnav a:hover { background: var(--bg3); color: var(--text); }
+  .topnav a.active { background: var(--bg3); color: var(--cyan); }
+
+  /* ── Content ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .page-title {
+    font-size: 1.6em;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--cyan);
+  }
+  .page-subtitle { color: var(--text2); margin-bottom: 24px; }
+
+  /* ── Quick Actions ── */
+  .quick-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .quick-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .quick-btn:hover { border-color: var(--cyan); color: var(--cyan); transform: translateY(-1px); }
+
+  /* ── Device Grid ── */
+  .device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .device-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.25s;
+  }
+  .device-card:hover { border-color: var(--cyan); transform: translateY(-2px); }
+  .device-card.on { border-color: var(--green); }
+  .device-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .device-name { font-size: 1.05em; font-weight: 600; }
+  .device-type { font-size: 0.8em; color: var(--text2); margin-top: 2px; }
+  .device-icon { font-size: 1.8em; }
+  .device-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .state-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+  .state-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .state-label { font-size: 0.85em; color: var(--text2); }
+
+  /* ── Toggle Switch ── */
+  .toggle-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .toggle {
+    width: 48px; height: 26px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .toggle.on { background: var(--green); border-color: var(--green); }
+  .toggle::after {
+    content: '';
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    transition: all 0.3s;
+  }
+  .toggle.on::after { right: auto; left: 2px; }
+  .toggle-label { font-size: 0.85em; color: var(--text2); }
+
+  /* ── Slider ── */
+  .slider-wrap { margin-top: 8px; }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    outline: none;
+    direction: ltr;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(34,211,238,0.4);
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    margin-top: 24px;
+    padding: 12px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: var(--text2);
+  }
+  .ws-status { display: flex; align-items: center; gap: 6px; }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .ws-dot.connected { background: var(--green); }
+  .ws-dot.disconnected { background: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+  .empty-state .icon { font-size: 3em; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="logo">Jarvis</a>
+  <a href="/pages/device_control.html" class="active">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills</a>
+  <a href="/pages/branches.html">Branches</a>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">שליטה במכשירים</h1>
+  <p class="page-subtitle">ניהול וצפייה בכל המכשירים המחוברים</p>
+
+  <div class="quick-actions">
+    <button class="quick-btn" onclick="quickAction('all_lights_off')">
+      <span>💡</span> כיבוי כל האורות
+    </button>
+    <button class="quick-btn" onclick="quickAction('movie_mode')">
+      <span>🎬</span> מצב סרט
+    </button>
+    <button class="quick-btn" onclick="quickAction('good_night')">
+      <span>🌙</span> לילה טוב
+    </button>
+    <button class="quick-btn" onclick="quickAction('all_on')">
+      <span>☀️</span> הפעלת הכל
+    </button>
+  </div>
+
+  <div id="deviceGrid" class="device-grid">
+    <div class="empty-state">
+      <div class="icon">🔌</div>
+      <p>טוען מכשירים...</p>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="ws-status">
+      <div class="ws-dot disconnected" id="wsDot"></div>
+      <span id="wsLabel">מתחבר...</span>
+    </div>
+    <span id="lastUpdate">עדכון אחרון: --</span>
+  </div>
+</div>
+
+<script>
+const grid = document.getElementById('deviceGrid');
+const wsDot = document.getElementById('wsDot');
+const wsLabel = document.getElementById('wsLabel');
+const lastUpdate = document.getElementById('lastUpdate');
+let ws = null;
+let devices = [];
+
+function deviceIcon(type) {
+  const icons = {
+    light: '💡', switch: '🔌', fan: '🌀', speaker: '🔊',
+    thermostat: '🌡️', camera: '📷', lock: '🔒', sensor: '📡',
+    tv: '📺', curtain: '🪟',
+  };
+  return icons[type] || '📟';
+}
+
+function renderDevices() {
+  if (!devices.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🔌</div><p>לא נמצאו מכשירים מחוברים</p></div>`;
+    return;
+  }
+  grid.innerHTML = devices.map((d, i) => {
+    const isOn = d.state === 'on' || d.state === true;
+    const hasBrightness = d.attributes && ('brightness' in d.attributes);
+    const hasVolume = d.attributes && ('volume' in d.attributes);
+    return `
+      <div class="device-card ${isOn ? 'on' : ''}">
+        <div class="device-header">
+          <div>
+            <div class="device-name">${d.name || d.entity_id || d.id}</div>
+            <div class="device-type">${d.type || 'unknown'}</div>
+          </div>
+          <div class="device-icon">${deviceIcon(d.type)}</div>
+        </div>
+        <div class="device-state">
+          <div class="state-dot ${isOn ? 'on' : ''}"></div>
+          <span class="state-label">${isOn ? 'פעיל' : 'כבוי'}</span>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle ${isOn ? 'on' : ''}" onclick="toggleDevice('${d.id || d.entity_id}')"></div>
+          <span class="toggle-label">הפעלה / כיבוי</span>
+        </div>
+        ${hasBrightness ? `
+          <div class="slider-wrap">
+            <div class="slider-label"><span>בהירות</span><span>${d.attributes.brightness}%</span></div>
+            <input type="range" min="0" max="100" value="${d.attributes.brightness}"
+              onchange="setDevice('${d.id || d.entity_id}','brightness',this.value)">
+          </div>` : ''}
+        ${hasVolume ? `
+          <div class="slider-wrap">
+            <div class="slider-label"><span>עוצמה</span><span>${d.attributes.volume}%</span></div>
+            <input type="range" min="0" max="100" value="${d.attributes.volume}"
+              onchange="setDevice('${d.id || d.entity_id}','volume',this.value)">
+          </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function fetchDevices() {
+  try {
+    const r = await fetch('/api/devices');
+    const data = await r.json();
+    devices = data.devices || [];
+    renderDevices();
+    lastUpdate.textContent = 'עדכון אחרון: ' + new Date().toLocaleTimeString('he-IL');
+  } catch (e) {
+    console.error('Error fetching devices:', e);
+  }
+}
+
+async function toggleDevice(id) {
+  try {
+    await fetch(`/api/devices/${encodeURIComponent(id)}/toggle`, { method: 'POST' });
+    await fetchDevices();
+  } catch (e) { console.error(e); }
+}
+
+async function setDevice(id, attr, val) {
+  try {
+    await fetch(`/api/devices/${encodeURIComponent(id)}/set`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attribute: attr, value: Number(val) }),
+    });
+    await fetchDevices();
+  } catch (e) { console.error(e); }
+}
+
+async function quickAction(action) {
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: action.replace(/_/g, ' ') }),
+    });
+    setTimeout(fetchDevices, 1500);
+  } catch (e) { console.error(e); }
+}
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => {
+    wsDot.className = 'ws-dot connected';
+    wsLabel.textContent = 'מחובר';
+  };
+  ws.onclose = () => {
+    wsDot.className = 'ws-dot disconnected';
+    wsLabel.textContent = 'מנותק - מתחבר מחדש...';
+    setTimeout(connectWS, 3000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      if (msg.type === 'device_state_changed' || msg.type === 'device_update') {
+        fetchDevices();
+      }
+    } catch {}
+  };
+}
+
+// Auto-refresh every 10 seconds
+setInterval(fetchDevices, 10000);
+fetchDevices();
+connectWS();
+</script>
+</body>
+</html>

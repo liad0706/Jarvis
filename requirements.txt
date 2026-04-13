@@ -1,0 +1,59 @@
+# Core
+aioconsole>=0.8.0
+ollama>=0.4.0
+openai>=1.0.0
+Pillow>=10.0.0
+aiosqlite>=0.20.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# Desktop automation (Creality Print)
+pyautogui>=0.9.54
+pywinauto>=0.6.8
+pywin32>=306
+
+# Async HTTP (smart home, push notifications, etc.)
+httpx>=0.27.0
+
+# Web scraping (3D models)
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Browser automation (Kamarlek appointments)
+playwright>=1.40.0
+
+# Spotify
+spotipy>=2.23.0
+
+# Apple TV (pyatv — discover, status, pairing, remote after pair)
+pyatv>=0.14.0
+
+# Local webcams (dynamic camera_manager / camera_vision skills)
+opencv-python>=4.8.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Dev: JARVIS_DEV_AUTO_RELOAD=true — restarts Jarvis when core/skills/config code changes
+watchfiles>=0.21.0
+
+# WhatsApp API server (keep starlette<1 — avoids breaking Gradio and similar stacks)
+fastapi>=0.109.0,<0.135.0
+uvicorn>=0.27.0,<0.42.0
+starlette>=0.36.0,<1.0.0
+
+# Voice (optional)
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.14
+sounddevice>=0.4.6
+numpy>=1.26.0
+
+# FAISS vector search (hybrid memory backend)
+faiss-cpu>=1.7.4
+
+# Discord bot
+discord.py>=2.3.0
+
+# Telegram bot
+python-telegram-bot>=22.0

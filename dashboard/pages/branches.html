@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis - Conversation Branches</title>
+<style>
+  :root {
+    --bg: #08101c;
+    --bg2: #101a2b;
+    --bg3: #16253a;
+    --border: #253751;
+    --text: #eef3fb;
+    --muted: #9caec1;
+    --cyan: #22d3ee;
+    --blue: #60a5fa;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 85% 10%, rgba(96,165,250,0.18), transparent 28%),
+      linear-gradient(180deg, #08101c, #0c1525 55%, #112139);
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(8,16,28,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .topnav a.active, .topnav a:hover { background: rgba(34,211,238,0.12); color: var(--text); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px 40px; }
+  .panel {
+    background: rgba(16,26,43,0.92);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+    margin-bottom: 18px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 140px 160px auto;
+    gap: 12px;
+    align-items: end;
+  }
+  label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 10px 12px;
+    font: inherit;
+  }
+  button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    padding: 10px 14px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .primary {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #051120;
+    border: none;
+    font-weight: 700;
+  }
+  .danger { color: var(--red); border-color: rgba(248,113,113,0.4); }
+  .list { display: grid; gap: 12px; }
+  .branch {
+    background: rgba(22,37,58,0.82);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  @media (max-width: 980px) {
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/">צ׳אט</a>
+  <a href="/pages/device_control.html">מכשירים</a>
+  <a href="/pages/memory_browser.html">זיכרון</a>
+  <a href="/pages/calendar.html">יומן</a>
+  <a href="/pages/documents.html">מסמכים</a>
+  <a href="/pages/health.html">בריאות</a>
+  <a href="/pages/notifications.html">התראות</a>
+  <a href="/pages/automations.html">אוטומציות</a>
+  <a href="/pages/skills.html">Skills ומודלים</a>
+  <a href="/pages/branches.html" class="active">Branches</a>
+</nav>
+
+<div class="container">
+  <section class="panel">
+    <h1 style="margin-top:0">Conversation Branching</h1>
+    <p class="meta">Fork מכל נקודה בשיחה, פתח branch כ-thread חדש בלי לאבד את המקור, ונסה כיוונים שונים במקביל.</p>
+    <div class="row">
+      <div>
+        <label for="label">שם ל-branch</label>
+        <input id="label" placeholder="Try another automation strategy" />
+      </div>
+      <div>
+        <label for="index">Message Index</label>
+        <input id="index" type="number" min="0" placeholder="leave empty = current end" />
+      </div>
+      <div>
+        <label>Session</label>
+        <input id="session" disabled />
+      </div>
+      <button class="primary" onclick="forkBranch()">Fork Current Session</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0">Saved Branches</h2>
+    <div id="branchList" class="list"></div>
+  </section>
+</div>
+
+<script>
+const SESSION_STORAGE_KEY = 'jarvisDashboardSessionId';
+const DEFAULT_SESSION_ID = 'default';
+
+function currentSessionId() {
+  return localStorage.getItem(SESSION_STORAGE_KEY) || DEFAULT_SESSION_ID;
+}
+
+function fmtTime(ts) {
+  return ts ? new Date(ts * 1000).toLocaleString('he-IL') : '';
+}
+
+async function loadBranches() {
+  document.getElementById('session').value = currentSessionId();
+  const response = await fetch('/api/branches');
+  const data = await response.json();
+  const branches = data.branches || [];
+  const list = document.getElementById('branchList');
+  if (!branches.length) {
+    list.innerHTML = '<div class="branch">אין branches שמורים עדיין.</div>';
+    return;
+  }
+  list.innerHTML = branches.map((branch) => `
+    <div class="branch">
+      <div class="head">
+        <div>
+          <strong>${branch.label || branch.branch_id}</strong>
+          <div class="meta">${branch.branch_id} · parent ${branch.parent_id} · messages ${branch.message_count}</div>
+        </div>
+        <div class="meta">${fmtTime(branch.created_at)}</div>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="openBranch('${branch.branch_id}')">Open As New Thread</button>
+        <button class="danger" onclick="deleteBranch('${branch.branch_id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function forkBranch() {
+  const payload = {
+    session_id: currentSessionId(),
+    label: document.getElementById('label').value.trim() || null,
+    at_index: document.getElementById('index').value ? Number(document.getElementById('index').value) : null,
+  };
+  const response = await fetch('/api/branches/fork', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    alert('יצירת branch נכשלה.');
+    return;
+  }
+  document.getElementById('label').value = '';
+  document.getElementById('index').value = '';
+  await loadBranches();
+}
+
+async function openBranch(branchId) {
+  const response = await fetch(`/api/branches/${encodeURIComponent(branchId)}/open`, { method: 'POST' });
+  const data = await response.json();
+  if (!response.ok || !data.session_id) {
+    alert(data.error || 'פתיחת branch נכשלה.');
+    return;
+  }
+  localStorage.setItem(SESSION_STORAGE_KEY, data.session_id);
+  window.location.href = '/';
+}
+
+async function deleteBranch(branchId) {
+  await fetch(`/api/branches/${encodeURIComponent(branchId)}`, { method: 'DELETE' });
+  await loadBranches();
+}
+
+loadBranches();
+</script>
+</body>
+</html>
