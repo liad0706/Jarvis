@@ -72,10 +72,17 @@ async def run_check(
     skip_if: bool = False,
     skip_reason: str = "",
 ):
-    """Run an async check with timeout, catch all errors."""
+    """Run an async check with timeout, catch all errors.
+    Suppresses library logging so tracebacks don't pollute the output.
+    """
     if skip_if:
         record(label, "skip", skip_reason)
         return None
+    import logging as _logging
+    # Silence all loggers during the check — health_check output is the UI
+    root_logger = _logging.getLogger()
+    prev_level = root_logger.level
+    root_logger.setLevel(_logging.CRITICAL + 1)
     t0 = time.monotonic()
     try:
         result = await asyncio.wait_for(coro, timeout=timeout)
@@ -94,6 +101,8 @@ async def run_check(
         elapsed = (time.monotonic() - t0) * 1000
         record(label, "fail", str(exc)[:120], elapsed)
         return None
+    finally:
+        root_logger.setLevel(prev_level)
 
 
 # =============================================================================
