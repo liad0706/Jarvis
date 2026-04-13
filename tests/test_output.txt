@@ -1,0 +1,82 @@
+﻿python : Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+At C:\Users\User\AppData\Local\Temp\ps-script-94ea7dfb-b062-4227-b9fd-0361657ee824.ps1:91 char:1
++ python tests\test_e2e.py 2>&1 | Out-File -Encoding utf8 tests\test_ou ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Embedding faile...atus code: 404):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Bootstrapping Jarvis...
+Provider: ollama
+Skills: ['creality', 'models', 'appointment', 'spotify', 'code', 'system', 'self_improve']
+
+=== Test 1: Simple greeting ===
+
+[90m  [...] Thinking...[0m[K
+Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+Reply: ╫פ╫ª╫ע╫¬ ╫פ╫₧╫ª╫ס: ╫נ╫á╫ש ╫ñ╫ó╫ש╫£ ╫ץ╫₧╫צ╫₧╫ש╫ƒ. ╫₧╫פ ╫נ╫¬╫פ ╫ª╫¿╫ש╫ת ╫ó╫צ╫¿╫פ?
+
+=== Test 2: Tool call (list files) ===
+
+[90m  [...] Thinking...[0m[K
+
+[90m  [...] Running: system -> list_files[0m[K
+
+[90m  [...] Tool system_list_files encountered an error[0m[K
+
+[90m  [...] Thinking (round 2)...[0m[K
+
+[90m  [...] Running: system -> run_command[0m[K
+
+[90m  [...] Thinking (round 3)...[0m[K
+
+[90m  [...] Running: system -> list_files[0m[K
+
+[90m  [...] Thinking (round 4)...[0m[K
+Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+Reply: ╫פ╫á╫פ ╫¿╫⌐╫ש╫₧╫פ ╫⌐╫£ ╫פ╫º╫ס╫ª╫ש╫¥ ╫ץ╫פ ╫¬╫ש╫º╫ש╫ץ╫¬ ╫ó╫£ ╫פ╫⌐╫ץ╫£╫ק╫ƒ:
+
+**╫¬╫ש╫º╫ש╫ץ╫¬ ╫ó╫ש╫º╫¿╫ש╫ץ╫¬:**
+- 3D Models
+- AI Projects
+- ArabicHebrewTranslator
+- Archives
+- Automation
+- Brawl Stars.lnk
+- brawl-stars-bot
+- Code
+- Desktop Shortcuts
+- Documents
+- Games
+- hitman
+- hitman.zip
+- jarvis-os
+- jarvis-os-vm.zip
+- jarvisV2
+- new idea
+- new
+
+=== Test 3: Search files ===
+
+[90m  [...] Thinking...[0m[K
+
+[90m  [...] Running: system -> search_files[0m[K
+
+[90m  [...] Tool system_search_files encountered an error[0m[K
+
+[90m  [...] Thinking (round 2)...[0m[K
+
+[90m  [...] Running: system -> search_files[0m[K
+
+[90m  [...] Tool system_search_files encountered an error[0m[K
+
+[90m  [...] Thinking (round 3)...[0m[K
+Embedding failed: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+Reply: I can't find the project directory. Could you please:
+1. Confirm the exact path to your project folder
+2. Or tell me where your 3D printing files are stored?
+
+I'll search in common locations like Documents/3D_Prints or Desktop/Project next.
+
+Done!

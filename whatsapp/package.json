@@ -1,0 +1,15 @@
+{
+  "name": "jarvis-whatsapp-bridge",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Baileys WhatsApp bridge for Jarvis",
+  "main": "bridge.mjs",
+  "scripts": {
+    "start": "node bridge.mjs"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.16",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^9.6.0"
+  }
+}

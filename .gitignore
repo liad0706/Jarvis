@@ -1,0 +1,66 @@
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+
+# Local user profile and assistant state
+USER.md
+SOUL.md
+MEMORY.md
+*.bak
+*.backup
+
+# Local project memory
+memory/**
+!memory/
+!memory/README.md
+
+# App auth caches and local databases
+.spotify_cache
+.aiopylgtv.sqlite
+data/
+local_memory/
+
+# Local assets
+scripts/vacuum_map.png
+
+# Claude Code local settings
+.claude/
+
+# WhatsApp session and npm install output
+whatsapp/auth/
+whatsapp/node_modules/
+whatsapp/package-lock.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env_py/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and screenshots
+*.log
+jarvis_*.txt
+jarvis_*.png
+screen*.png
+
+# Build output
+dist/
+build/
+*.egg-info/

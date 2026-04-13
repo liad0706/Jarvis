@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>RuView - מפת בית חכם</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #0b0b18;
+    color: #e0e0e0;
+    font-family: 'Rubik', 'Segoe UI', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+}
+.container {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    grid-template-rows: 44px 1fr;
+    height: 100vh;
+    gap: 6px;
+    padding: 6px;
+}
+.topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #111125;
+    border-radius: 10px;
+    padding: 0 16px;
+    border: 1px solid #1e1e3a;
+}
+.topbar h1 { font-size: 15px; font-weight: 600; color: #7c7cf0; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.live-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+    padding: 3px 9px; border-radius: 14px;
+    font-size: 10px; color: #4ade80;
+}
+.live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ade80;
+    animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.stat { font-size: 10px; color: #555; }
+.stat span { color: #888; }
+
+.map-area {
+    background: #0b0b18;
+    border-radius: 10px;
+    border: 1px solid #1e1e3a;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+canvas { display: block; }
+
+.sidebar {
+    display: flex; flex-direction: column; gap: 6px;
+    overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+.card {
+    background: #111125;
+    border-radius: 10px;
+    border: 1px solid #1e1e3a;
+    padding: 10px;
+}
+.card-title { font-size: 12px; font-weight: 600; color: #777; margin-bottom: 8px; }
+
+.presence-box {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px; border-radius: 8px; margin-bottom: 6px;
+}
+.presence-box.active { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); }
+.presence-box.empty { background: rgba(100,100,100,0.05); border: 1px solid rgba(100,100,100,0.1); }
+.p-count { font-size: 30px; font-weight: 700; line-height: 1; }
+.presence-box.active .p-count { color: #4ade80; }
+.presence-box.empty .p-count { color: #333; }
+.p-text { font-size: 11px; color: #666; }
+.p-motion { font-size: 10px; color: #555; }
+
+.person-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px; background: rgba(255,255,255,0.02);
+    border-radius: 7px; margin-bottom: 4px;
+    border: 1px solid rgba(255,255,255,0.03);
+}
+.person-dot-small {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+}
+.person-name { font-size: 11px; font-weight: 600; }
+.person-room { font-size: 9px; color: #555; }
+
+.room-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0; font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.room-row:last-child { border: none; }
+.r-name { color: #555; }
+.r-occ { font-weight: 500; }
+.r-occ.yes { color: #4ade80; }
+.r-occ.no { color: #2a2a2a; }
+
+.vital-row {
+    display: flex; justify-content: space-between;
+    padding: 3px 0; font-size: 11px;
+}
+.v-label { color: #555; }
+.v-val { color: #aaa; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+        <h1>RuView Smart Home</h1>
+        <div class="topbar-right">
+            <div class="stat">Tick <span id="tick">-</span></div>
+            <div class="stat">Signal <span id="sigq">-</span></div>
+            <div class="stat" id="clock"></div>
+            <div class="live-badge"><div class="live-dot" id="led"></div>LIVE</div>
+        </div>
+    </div>
+
+    <div class="map-area" id="map-area">
+        <canvas id="c"></canvas>
+    </div>
+
+    <div class="sidebar">
+        <div class="card">
+            <div class="card-title">נוכחות</div>
+            <div class="presence-box empty" id="pbox">
+                <div class="p-count" id="pcount">0</div>
+                <div><div class="p-text" id="plabel">-</div><div class="p-motion" id="pmotion"></div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">אנשים</div>
+            <div id="plist"><div style="color:#333;font-size:10px;text-align:center">-</div></div>
+        </div>
+        <div class="card">
+            <div class="card-title">חדרים</div>
+            <div id="rlist"></div>
+        </div>
+        <div class="card">
+            <div class="card-title">סימנים חיוניים</div>
+            <div class="vital-row"><span class="v-label">דופק</span><span class="v-val" id="hr">-</span></div>
+            <div class="vital-row"><span class="v-label">נשימה</span><span class="v-val" id="br">-</span></div>
+            <div class="vital-row"><span class="v-label">איכות</span><span class="v-val" id="sq">-</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const API = window.location.origin;
+
+// Load house map
+const mapImg = new Image();
+mapImg.src = 'vacuum_map.png';
+let mapReady = false;
+mapImg.onload = () => { mapReady = true; resize(); };
+
+// Rooms from Dreame vacuum (in vacuum map pixel coordinates)
+// vacuum_map.png is 1360 x 1900
+const IMG_W = 1360, IMG_H = 1900;
+
+// Room positions in image pixel coordinates (estimated from the map)
+const ROOMS = [
+    { name:'חדר רחצה',       cx: 580, cy: 450,  x0: 480, y0: 350, x1: 700, y1: 540 },
+    { name:'חדר שינה ראשי',  cx: 680, cy: 300,  x0: 560, y0: 180, x1: 830, y1: 420 },
+    { name:'חדר שינה 2',     cx: 650, cy: 580,  x0: 520, y0: 460, x1: 780, y1: 700 },
+    { name:'מסדרון',          cx: 730, cy: 750,  x0: 680, y0: 600, x1: 800, y1: 900 },
+    { name:'חדר רחצה 2',     cx: 700, cy: 870,  x0: 620, y0: 800, x1: 780, y1: 950 },
+    { name:'חדר שינה 3',     cx: 700, cy: 1100, x0: 600, y0: 950, x1: 810, y1: 1250 },
+    { name:'סלון',            cx: 850, cy: 1450, x0: 650, y0: 1250, x1: 1050, y1: 1700 },
+];
+
+const COLORS = [
+    { main:'#4ade80', glow:'rgba(74,222,128,', bg:'rgba(74,222,128,0.12)' },
+    { main:'#f97316', glow:'rgba(249,115,22,', bg:'rgba(249,115,22,0.12)' },
+    { main:'#60a5fa', glow:'rgba(96,165,250,', bg:'rgba(96,165,250,0.12)' },
+    { main:'#f472b6', glow:'rgba(244,114,182,', bg:'rgba(244,114,182,0.12)' },
+];
+
+const motionHe = { present_still:'ללא תנועה', present_moving:'בתנועה', absent:'ריק' };
+
+// Image rendering bounds (within canvas, preserving aspect ratio)
+let imgX=0, imgY=0, imgW=0, imgH=0;
+
+function resize() {
+    const area = document.getElementById('map-area');
+    const rect = area.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    if (mapReady) {
+        const scale = Math.min(rect.width / IMG_W, rect.height / IMG_H);
+        imgW = IMG_W * scale;
+        imgH = IMG_H * scale;
+        imgX = (rect.width - imgW) / 2;
+        imgY = (rect.height - imgH) / 2;
+    }
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Convert image pixel coords to canvas coords
+function imgToCanvas(px, py) {
+    return {
+        x: imgX + (px / IMG_W) * imgW,
+        y: imgY + (py / IMG_H) * imgH,
+    };
+}
+
+// Map RuView person coords (500x500) to image pixel coords
+// RuView grid center ≈ house center. Map proportionally.
+function ruviewToImg(rx, ry) {
+    // RuView 500x500 → map image pixels
+    // Center of house in image: ~750, 900
+    // Scale: the house spans roughly 400px wide and 1400px tall in the image
+    // RuView 0-500 maps across the house
+    const houseLeft = 480, houseRight = 1050;
+    const houseTop = 150, houseBottom = 1700;
+    const px = houseLeft + (rx / 500) * (houseRight - houseLeft);
+    const py = houseTop + (ry / 500) * (houseBottom - houseTop);
+    return { px, py };
+}
+
+// Find which room a point (in image coords) falls in
+function findRoom(ipx, ipy) {
+    for (const r of ROOMS) {
+        if (ipx >= r.x0 && ipx <= r.x1 && ipy >= r.y0 && ipy <= r.y1) {
+            return r.name;
+        }
+    }
+    // Nearest room
+    let best = ROOMS[0], bestD = Infinity;
+    for (const r of ROOMS) {
+        const d = Math.hypot(ipx - r.cx, ipy - r.cy);
+        if (d < bestD) { bestD = d; best = r; }
+    }
+    return best.name;
+}
+
+// Smooth positions
+let smoothPos = [];
+let pulsePhase = 0;
+
+function draw(persons) {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw house map
+    if (mapReady) {
+        ctx.drawImage(mapImg, imgX, imgY, imgW, imgH);
+        // Slight darkening overlay for contrast
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+
+    pulsePhase += 0.05;
+
+    // Update smooth positions
+    while (smoothPos.length > persons.length) smoothPos.pop();
+    while (smoothPos.length < persons.length) smoothPos.push({ x: w/2, y: h/2 });
+
+    persons.forEach((person, idx) => {
+        const bbox = person.bbox || {};
+        const rcx = (bbox.x || 250) + (bbox.width || 0) / 2;
+        const rcy = (bbox.y || 250) + (bbox.height || 0) / 2;
+
+        // RuView coords → image coords → canvas coords
+        const img = ruviewToImg(rcx, rcy);
+        const pos = imgToCanvas(img.px, img.py);
+
+        // Smooth
+        smoothPos[idx].x += (pos.x - smoothPos[idx].x) * 0.3;
+        smoothPos[idx].y += (pos.y - smoothPos[idx].y) * 0.3;
+        const sx = smoothPos[idx].x;
+        const sy = smoothPos[idx].y;
+
+        const c = COLORS[idx % COLORS.length];
+        const pulse = 0.5 + 0.5 * Math.sin(pulsePhase + idx * 1.5);
+
+        // Outer pulse ring
+        const outerR = 22 + pulse * 10;
+        ctx.beginPath();
+        ctx.arc(sx, sy, outerR, 0, Math.PI * 2);
+        ctx.strokeStyle = c.glow + (0.2 + pulse * 0.2).toFixed(2) + ')';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Glow
+        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
+        grad.addColorStop(0, c.glow + '0.3)');
+        grad.addColorStop(1, c.glow + '0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 30, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main dot
+        ctx.beginPath();
+        ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+        ctx.fillStyle = c.main;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Number inside dot
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 11px Rubik, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(idx + 1, sx, sy);
+
+        // Room label below
+        const room = findRoom(img.px, img.py);
+        ctx.font = '11px Rubik, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        const txt = `${room}`;
+        const tm = ctx.measureText(txt);
+        const tw = tm.width + 12;
+        const th = 18;
+        const lx = sx - tw / 2;
+        const ly = sy + 16;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.beginPath();
+        ctx.roundRect(lx, ly, tw, th, 6);
+        ctx.fill();
+
+        ctx.fillStyle = c.main;
+        ctx.fillText(txt, sx, ly + 3);
+    });
+}
+
+async function update() {
+    try {
+        const r = await fetch(`${API}/api/v1/sensing/latest`);
+        const d = await r.json();
+        const cls = d.classification || {};
+        const vs = d.vital_signs || {};
+        const persons = d.persons || [];
+
+        draw(persons);
+
+        // Sidebar
+        const count = persons.length || (cls.presence ? 1 : 0);
+        const pbox = document.getElementById('pbox');
+        document.getElementById('pcount').textContent = count;
+        if (cls.presence) {
+            pbox.className = 'presence-box active';
+            document.getElementById('plabel').textContent = count > 1 ? 'אנשים בבית' : 'אדם בבית';
+        } else {
+            pbox.className = 'presence-box empty';
+            document.getElementById('plabel').textContent = 'הבית ריק';
+        }
+        document.getElementById('pmotion').textContent = motionHe[cls.motion_level] || '';
+
+        const hr = vs.heart_rate_bpm || 0;
+        const brr = vs.breathing_rate_bpm || 0;
+        const sqv = (vs.signal_quality || 0) * 100;
+        document.getElementById('hr').textContent = hr ? hr.toFixed(0) + ' BPM' : '-';
+        document.getElementById('br').textContent = brr ? brr.toFixed(1) + '/min' : '-';
+        document.getElementById('sq').textContent = sqv.toFixed(0) + '%';
+        document.getElementById('tick').textContent = d.tick || '-';
+        document.getElementById('sigq').textContent = sqv.toFixed(0) + '%';
+        document.getElementById('clock').textContent = new Date().toLocaleTimeString('he-IL');
+
+        // Persons list
+        const pl = document.getElementById('plist');
+        if (!persons.length) {
+            pl.innerHTML = '<div style="color:#333;font-size:10px;text-align:center">אין</div>';
+        } else {
+            pl.innerHTML = persons.map((p, i) => {
+                const c = COLORS[i % COLORS.length];
+                const bbox = p.bbox || {};
+                const img = ruviewToImg((bbox.x||250)+(bbox.width||0)/2, (bbox.y||250)+(bbox.height||0)/2);
+                const room = findRoom(img.px, img.py);
+                return `<div class="person-item">
+                    <div class="person-dot-small" style="background:${c.bg};color:${c.main}">${i+1}</div>
+                    <div><div class="person-name" style="color:${c.main}">אדם ${i+1}</div>
+                    <div class="person-room">${room}</div></div>
+                </div>`;
+            }).join('');
+        }
+
+        // Rooms
+        const occ = new Set();
+        persons.forEach(p => {
+            const bbox = p.bbox || {};
+            const img = ruviewToImg((bbox.x||250)+(bbox.width||0)/2, (bbox.y||250)+(bbox.height||0)/2);
+            occ.add(findRoom(img.px, img.py));
+        });
+        document.getElementById('rlist').innerHTML = ROOMS.map(r =>
+            `<div class="room-row"><span class="r-name">${r.name}</span><span class="r-occ ${occ.has(r.name)?'yes':'no'}">${occ.has(r.name)?'תפוס':'ריק'}</span></div>`
+        ).join('');
+
+        document.getElementById('led').style.background = '#4ade80';
+    } catch (e) {
+        document.getElementById('led').style.background = '#ef4444';
+    }
+}
+
+// Animation loop for smooth pulse
+function animate() {
+    requestAnimationFrame(animate);
+}
+animate();
+
+update();
+setInterval(update, 1500);
+</script>
+</body>
+</html>

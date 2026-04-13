@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg2: #111827;
+    --bg3: #1a2233;
+    --border: #1e2d45;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+    --sidebar-w: 280px;
+  }
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --bg2: #ffffff;
+    --bg3: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text2: #64748b;
+    --cyan: #0891b2;
+    --green: #059669;
+    --yellow: #d97706;
+    --red: #dc2626;
+    --purple: #7c3aed;
+    --blue: #2563eb;
+    --orange: #ea580c;
+  }
+  [data-theme="light"] .msg.user {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    border-color: #93c5fd;
+  }
+  [data-theme="light"] .msg.assistant .msg-body pre {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .msg.assistant .msg-body pre code { color: #1e293b; }
+  [data-theme="light"] .msg.assistant .msg-body code { background: rgba(0,0,0,0.06); }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: margin-right 0.3s ease, opacity 0.3s ease;
+    z-index: 60;
+  }
+  .sidebar.collapsed {
+    margin-right: calc(-1 * var(--sidebar-w));
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sidebar-header {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-title {
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+  }
+  .sidebar-close-btn {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sidebar-close-btn:hover { background: var(--bg3); color: var(--text); }
+  .new-chat-btn {
+    margin: 12px 16px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--cyan);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .new-chat-btn:hover {
+    border-color: var(--cyan);
+    background: rgba(34,211,238,0.06);
+  }
+  .session-search {
+    margin: 0 16px 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    width: calc(100% - 32px);
+    direction: rtl;
+    transition: border-color 0.2s;
+  }
+  .session-search:focus { border-color: var(--cyan); }
+  .session-search::placeholder { color: var(--text2); }
+  .session-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 12px 16px;
+  }
+  .session-item {
+    position: relative;
+    padding: 10px 12px;
+    padding-inline-end: 32px;
+    margin-bottom: 2px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text2);
+    cursor: pointer;
+    border: 1px solid transparent;
+    word-break: break-word;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .session-item:hover { background: var(--bg3); color: var(--text); }
+  .session-item.active {
+    border-color: var(--cyan);
+    background: rgba(34,211,238,0.08);
+    color: var(--cyan);
+  }
+  .session-item-del {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 6px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .session-item:hover .session-item-del { opacity: 1; }
+  .session-item-del:hover { color: var(--red); background: rgba(248,113,113,0.1); }
+  .session-item.default .session-item-del { display: none; }
+
+  /* ── Main Area ── */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .hamburger-btn:hover { background: var(--bg3); color: var(--text); }
+  .logo {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
+  }
+  .connection-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    transition: background 0.3s;
+  }
+  .connection-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .header-right { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text2); }
+
+  /* ── Provider Picker ── */
+  .provider-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 12px;
+    color: var(--cyan);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    font-family: inherit;
+  }
+  .provider-btn:hover { border-color: var(--cyan); background: rgba(34,211,238,0.08); }
+  .provider-btn .model-name { color: var(--text2); font-weight: 400; margin-right: 4px; }
+  .provider-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    min-width: 220px;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .provider-dropdown.open { display: block; }
+  .provider-option {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .provider-option:hover { background: var(--bg3); }
+  .provider-option.active { color: var(--cyan); }
+  .provider-option.active::after { content: '\2713'; color: var(--green); }
+
+  /* ── Status Widgets Bar ── */
+  .status-widgets {
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    scrollbar-width: thin;
+  }
+  .status-widgets::-webkit-scrollbar { height: 4px; }
+  .status-widgets::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .status-card {
+    flex-shrink: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    min-width: 120px;
+  }
+  .status-card:hover { border-color: var(--cyan); background: rgba(34,211,238,0.05); }
+  .status-card-icon { font-size: 18px; flex-shrink: 0; }
+  .status-card-info { display: flex; flex-direction: column; }
+  .status-card-label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .status-card-value { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; }
+
+  /* ── Quick Action Buttons ── */
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    scrollbar-width: thin;
+  }
+  .quick-actions::-webkit-scrollbar { height: 4px; }
+  .quick-actions::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .quick-action-btn {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .quick-action-btn:hover { border-color: var(--cyan); background: rgba(34,211,238,0.08); }
+  .quick-action-btn:active { transform: scale(0.95); }
+
+  /* ── Status Bar (Jarvis state) ── */
+  .status-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .status-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s;
+  }
+  .status-idle .status-icon { background: rgba(34,211,238,0.15); color: var(--cyan); }
+  .status-thinking .status-icon { background: rgba(251,191,36,0.15); color: var(--yellow); animation: pulse 1.2s infinite; }
+  .status-tool .status-icon { background: rgba(167,139,250,0.15); color: var(--purple); animation: pulse 0.8s infinite; }
+  .status-planning .status-icon { background: rgba(96,165,250,0.15); color: var(--blue); animation: pulse 1s infinite; }
+  .status-error .status-icon { background: rgba(248,113,113,0.15); color: var(--red); }
+  .status-step .status-icon { background: rgba(52,211,153,0.15); color: var(--green); animation: pulse 1s infinite; }
+  .status-working .status-icon { background: rgba(251,191,36,0.15); color: var(--yellow); animation: pulse 1s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.92); }
+  }
+  .status-text { color: var(--text); }
+  .status-detail { color: var(--text2); font-weight: 400; font-size: 12px; margin-right: 8px; }
+
+  /* ── Chat Content Area ── */
+  .chat-content {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Conversation ── */
+  .conversation-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .conversation-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    padding-bottom: 8px;
+    scroll-behavior: smooth;
+  }
+  .msg {
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 85%;
+    word-wrap: break-word;
+    animation: msgSlideIn 0.25s ease-out;
+    position: relative;
+  }
+  @keyframes msgSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user {
+    background: linear-gradient(135deg, #1e3a5f, #1a2d4a);
+    border: 1px solid #2a4a6f;
+    margin-left: auto;
+    text-align: right;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .msg.assistant {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    margin-right: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .msg.progress {
+    background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(34,211,238,0.06));
+    border: 1px dashed rgba(96,165,250,0.45);
+  }
+  .msg.progress.live {
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.12), 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .msg-role {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .msg.user .msg-role { color: var(--blue); }
+  .msg.assistant .msg-role { color: var(--cyan); }
+  .msg.progress .msg-role {
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .msg-progress-status {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(96,165,250,0.16);
+    color: var(--text2);
+  }
+  .msg.progress.live .msg-progress-status {
+    background: rgba(251,191,36,0.16);
+    color: var(--yellow);
+  }
+  .msg-progress-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .msg-progress-line {
+    position: relative;
+    padding: 8px 10px 8px 14px;
+    border-radius: 10px;
+    background: rgba(15,23,42,0.18);
+    border: 1px solid rgba(148,163,184,0.12);
+    color: var(--text);
+  }
+  .msg-progress-line::before {
+    content: '\25CF';
+    position: absolute;
+    inset-inline-start: 7px;
+    top: 8px;
+    font-size: 8px;
+    color: var(--cyan);
+  }
+  .msg-timestamp {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 6px;
+    opacity: 0.7;
+  }
+  .msg.user .msg-timestamp { text-align: right; }
+  .msg.assistant .msg-timestamp { text-align: left; }
+  .msg-body.streaming::after {
+    content: '\25CC';
+    color: var(--cyan);
+    animation: blink 0.6s step-end infinite;
+    margin-right: 2px;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── Markdown in assistant messages ── */
+  .msg.assistant .msg-body p { margin-bottom: 8px; }
+  .msg.assistant .msg-body p:last-child { margin-bottom: 0; }
+  .msg.assistant .msg-body ul,
+  .msg.assistant .msg-body ol { padding-inline-start: 20px; margin-bottom: 8px; }
+  .msg.assistant .msg-body li { margin-bottom: 2px; }
+  .msg.assistant .msg-body strong { color: var(--cyan); }
+  .msg.assistant .msg-body code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+  }
+  .msg.assistant .msg-body pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    margin: 8px 0;
+    direction: ltr;
+    text-align: left;
+  }
+  .msg.assistant .msg-body pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .msg.assistant .msg-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+  }
+  .msg.assistant .msg-body th,
+  .msg.assistant .msg-body td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .msg.assistant .msg-body th {
+    background: var(--bg3);
+    font-weight: 600;
+  }
+  .msg.assistant .msg-body blockquote {
+    border-right: 3px solid var(--cyan);
+    padding-right: 12px;
+    margin: 8px 0;
+    color: var(--text2);
+  }
+  .msg.assistant .msg-body a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .msg.assistant .msg-body a:hover { text-decoration: underline; }
+
+  /* ── Scroll-to-bottom button ── */
+  .scroll-bottom-btn {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text2);
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: background 0.2s, color 0.2s;
+  }
+  .scroll-bottom-btn:hover { background: var(--bg3); color: var(--text); }
+  .scroll-bottom-btn.visible { display: flex; }
+
+  /* ── Chat Input ── */
+  .chat-input-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .chat-input-bar input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 10px 18px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    direction: rtl;
+  }
+  .chat-input-bar input:focus { border-color: var(--cyan); }
+  .chat-input-bar input::placeholder { color: var(--text2); }
+  .chat-input-bar input:disabled { opacity: 0.5; }
+  .chat-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    color: var(--bg);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .send-btn {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+  }
+  .voice-btn {
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+  }
+  .abort-btn {
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    display: none;
+  }
+  .chat-btn:hover { opacity: 0.85; }
+  .chat-btn:active { transform: scale(0.92); }
+  .chat-btn:disabled { opacity: 0.4; cursor: default; }
+  .voice-btn.recording {
+    animation: voicePulse 1s infinite;
+  }
+  @keyframes voicePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+  }
+  .typing-indicator {
+    display: none;
+    padding: 6px 20px;
+    font-size: 12px;
+    color: var(--text2);
+    animation: pulse 1.2s infinite;
+  }
+  .typing-indicator.active { display: block; }
+
+  /* ── Event Feed (right side) ── */
+  .event-feed {
+    width: 320px;
+    min-width: 320px;
+    overflow-y: auto;
+    padding: 16px;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    display: none;
+  }
+  .event-feed.visible { display: block; }
+  .event-feed h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 4px 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .event-feed-close {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .event-feed-close:hover { background: var(--bg3); color: var(--text); }
+  .event-item {
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    animation: slideIn 0.2s ease-out;
+    transition: border-color 0.2s;
+  }
+  .event-item:hover { border-color: var(--cyan); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .event-time { color: var(--text2); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .event-type {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin: 0 4px;
+  }
+  .event-type.llm { background: rgba(251,191,36,0.2); color: var(--yellow); }
+  .event-type.tool { background: rgba(167,139,250,0.2); color: var(--purple); }
+  .event-type.plan { background: rgba(96,165,250,0.2); color: var(--blue); }
+  .event-type.step { background: rgba(52,211,153,0.2); color: var(--green); }
+  .event-type.error { background: rgba(248,113,113,0.2); color: var(--red); }
+  .event-detail { color: var(--text2); margin-top: 3px; word-break: break-word; font-size: 11px; }
+
+  /* ── Plan Overlay ── */
+  .plan-overlay {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    width: 380px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    z-index: 50;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: slideUp 0.3s ease-out;
+  }
+  .plan-overlay.active { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .plan-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .plan-header-title { font-size: 14px; font-weight: 700; color: var(--blue); }
+  .plan-close {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    font-size: 16px; padding: 2px 6px; border-radius: 4px;
+  }
+  .plan-close:hover { background: var(--bg3); color: var(--text); }
+  .plan-goal { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.4; }
+  .plan-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .plan-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--green));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .plan-step-list { list-style: none; }
+  .plan-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--text2);
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+  .plan-step-item:last-child { border-bottom: none; }
+  .plan-step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1.5px solid var(--border);
+    transition: all 0.3s;
+  }
+  .plan-step-item.active .plan-step-num { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,0.12); }
+  .plan-step-item.done .plan-step-num { border-color: var(--green); color: var(--green); background: rgba(52,211,153,0.12); }
+  .plan-step-item.failed .plan-step-num { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.12); }
+  .plan-step-item.active { color: var(--text); }
+  .plan-step-item.done { color: var(--green); }
+  .plan-step-item.failed { color: var(--red); }
+  .plan-step-desc { line-height: 1.4; padding-top: 1px; }
+
+  /* ── Metrics Strip ── */
+  .metrics-strip {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .metric-card {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 12px;
+    border-left: 1px solid var(--border);
+    text-align: center;
+  }
+  .metric-card:last-child { border-left: none; }
+  .metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+
+  /* ── Header action buttons ── */
+  .header-action-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  a.header-action-btn { text-decoration: none; display: inline-flex; align-items: center; }
+  .header-action-btn:hover { border-color: var(--cyan); color: var(--text); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3f5f; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      z-index: 100;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+    }
+    .sidebar.collapsed {
+      margin-right: calc(-1 * var(--sidebar-w));
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+    }
+    .sidebar-overlay.visible { display: block; }
+    .event-feed { display: none !important; }
+    .status-card { min-width: 100px; }
+    .msg { max-width: 95%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">JARVIS</span>
+    <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Close sidebar">&#10005;</button>
+  </div>
+  <button type="button" class="new-chat-btn" id="newSessionBtn">
+    <span>+</span>
+    <span>שיחה חדשה</span>
+  </button>
+  <input type="text" class="session-search" id="sessionSearch" placeholder="חפש שיחה..." autocomplete="off" />
+  <div class="session-scroll" id="sessionScroll"></div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Main Area -->
+<div class="main-area">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" id="hamburgerBtn" title="Toggle sidebar">&#9776;</button>
+      <div class="logo">JARVIS</div>
+      <div class="connection-dot" id="connDot" title="Disconnected"></div>
+    </div>
+    <div class="header-right">
+      <div style="position:relative;">
+        <button class="provider-btn" id="providerBtn" onclick="toggleProviderDropdown()">
+          <span id="providerName">&mdash;</span>
+          <span class="model-name" id="providerModel"></span>
+          &#9662;
+        </button>
+        <div class="provider-dropdown" id="providerDropdown"></div>
+      </div>
+      <a class="header-action-btn" href="/pages/device_control.html" title="Devices">Devices</a>
+      <a class="header-action-btn" href="/pages/documents.html" title="Documents">Documents</a>
+      <a class="header-action-btn" href="/pages/notifications.html" title="Notifications">Notifications</a>
+      <a class="header-action-btn" href="/pages/skills.html" title="Skills and Models">Skills</a>
+      <button class="header-action-btn" id="themeToggleBtn" title="Toggle theme">☀️</button>
+      <button class="header-action-btn" id="toggleEventsBtn" title="Toggle Events">Events</button>
+      <span id="uptimeLabel" style="font-size:11px;">Session: &mdash;</span>
+    </div>
+  </div>
+
+  <!-- Status Widgets Bar -->
+  <div class="status-widgets" id="statusWidgets">
+    <div class="status-card" data-widget="lights" onclick="sendQuickAction('מה מצב האורות?')">
+      <span class="status-card-icon">💡</span>
+      <div class="status-card-info">
+        <span class="status-card-label">אורות</span>
+        <span class="status-card-value" id="widgetLights">—</span>
+      </div>
+    </div>
+    <div class="status-card" data-widget="music" onclick="sendQuickAction('מה מתנגן עכשיו?')">
+      <span class="status-card-icon">🎵</span>
+      <div class="status-card-info">
+        <span class="status-card-label">מוזיקה</span>
+        <span class="status-card-value" id="widgetMusic">—</span>
+      </div>
+    </div>
+    <div class="status-card" data-widget="tv" onclick="sendQuickAction('מה מצב הטלוויזיה?')">
+      <span class="status-card-icon">📺</span>
+      <div class="status-card-info">
+        <span class="status-card-label">טלוויזיה</span>
+        <span class="status-card-value" id="widgetTV">—</span>
+      </div>
+    </div>
+    <div class="status-card" data-widget="home" onclick="sendQuickAction('מי בבית?')">
+      <span class="status-card-icon">🏠</span>
+      <div class="status-card-info">
+        <span class="status-card-label">בבית</span>
+        <span class="status-card-value" id="widgetHome">—</span>
+      </div>
+    </div>
+    <div class="status-card" data-widget="schedule" onclick="sendQuickAction('מה ביומן?')">
+      <span class="status-card-icon">⏰</span>
+      <div class="status-card-info">
+        <span class="status-card-label">הבא</span>
+        <span class="status-card-value" id="widgetSchedule">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Action Buttons -->
+  <div class="quick-actions" id="quickActionsBar"></div>
+
+  <!-- Status Bar (Jarvis state) -->
+  <div class="status-bar">
+    <div class="status-indicator status-idle" id="statusIndicator">
+      <div class="status-icon" id="statusIcon">&#9208;</div>
+      <div>
+        <span class="status-text" id="statusText">Idle</span>
+        <span class="status-detail" id="statusDetail"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Content Area -->
+  <div class="chat-content">
+    <!-- Conversation -->
+    <div class="conversation-main">
+      <div class="conversation-messages" id="conversationScroll">
+        <div id="conversationList"></div>
+      </div>
+      <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">&#8595;</button>
+      <div class="typing-indicator" id="typingIndicator">Jarvis is thinking...</div>
+      <div class="chat-input-bar">
+        <button class="chat-btn voice-btn" id="voiceBtn" title="Voice input">&#127908;</button>
+        <input type="text" id="chatInput" placeholder="...כתוב הודעה לג'רביס" autocomplete="off" />
+        <button class="chat-btn send-btn" id="sendBtn" title="Send">&#9654;</button>
+        <button class="chat-btn abort-btn" id="abortBtn" title="Abort">&#9632;</button>
+      </div>
+    </div>
+
+    <!-- Event Feed -->
+    <div class="event-feed" id="eventFeed">
+      <h3>
+        Live Events
+        <button class="event-feed-close" id="eventFeedClose" title="Close">&times;</button>
+      </h3>
+      <div id="eventList"></div>
+    </div>
+  </div>
+
+  <!-- Metrics Strip -->
+  <div class="metrics-strip">
+    <div class="metric-card">
+      <div class="metric-value" id="metLlmCalls">0</div>
+      <div class="metric-label">LLM Calls</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="metToolCalls">0</div>
+      <div class="metric-label">Tool Calls</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="metAvgLatency">&mdash;</div>
+      <div class="metric-label">Avg Latency</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="metErrors">0</div>
+      <div class="metric-label">Errors</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" id="metMessages">0</div>
+      <div class="metric-label">Messages</div>
+    </div>
+  </div>
+</div>
+
+<!-- Plan Overlay (floating card) -->
+<div class="plan-overlay" id="planOverlay">
+  <div class="plan-header">
+    <span class="plan-header-title">📋 Plan</span>
+    <button class="plan-close" onclick="document.getElementById('planOverlay').classList.remove('active')">&times;</button>
+  </div>
+  <div class="plan-goal" id="planGoal"></div>
+  <div class="plan-progress-bar"><div class="plan-progress-fill" id="planProgressFill"></div></div>
+  <ul class="plan-step-list" id="planStepList"></ul>
+</div>
+
+<script>
+// ── Markdown config ──
+if (typeof marked !== 'undefined') {
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    headerIds: false,
+    mangle: false
+  });
+}
+
+// ── Theme (light/dark) ──
+function getAutoTheme() {
+  const h = new Date().getHours();
+  return (h >= 6 && h < 18) ? 'light' : 'dark';
+}
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme === 'light' ? 'light' : '';
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+}
+(function initTheme() {
+  const stored = localStorage.getItem('jarvisTheme');
+  if (stored) {
+    applyTheme(stored);
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    applyTheme('light');
+  } else {
+    applyTheme(getAutoTheme());
+  }
+})();
+
+// ── State ──
+let ws = null;
+let reconnectTimer = null;
+const startTime = Date.now();
+const metrics = { llmCalls: 0, toolCalls: 0, errors: 0, messages: 0 };
+let planSteps = [];
+let planTotal = 0;
+let currentStep = -1;
+let isSending = false;
+let _streamTimer = null;
+let _streamQueue = [];
+
+const SESSION_STORAGE_KEY = 'jarvisDashboardSessionId';
+const DEFAULT_SESSION_ID = 'default';
+let currentSessionId = localStorage.getItem(SESSION_STORAGE_KEY) || DEFAULT_SESSION_ID;
+const progressStateBySession = Object.create(null);
+let activeProgressBubble = null;
+let activeProgressSessionId = null;
+
+// ── DOM refs ──
+const $ = id => document.getElementById(id);
+
+// ── Sidebar Toggle ──
+const sidebar = $('sidebar');
+const sidebarOverlay = $('sidebarOverlay');
+const hamburgerBtn = $('hamburgerBtn');
+
+// Restore sidebar state from localStorage
+const sidebarHidden = localStorage.getItem('jarvisSidebarHidden') === 'true';
+if (sidebarHidden) sidebar.classList.add('collapsed');
+
+hamburgerBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('collapsed');
+  sidebarOverlay.classList.toggle('visible', !sidebar.classList.contains('collapsed'));
+  localStorage.setItem('jarvisSidebarHidden', sidebar.classList.contains('collapsed'));
+});
+$('sidebarCloseBtn').addEventListener('click', () => {
+  sidebar.classList.add('collapsed');
+  sidebarOverlay.classList.remove('visible');
+  localStorage.setItem('jarvisSidebarHidden', 'true');
+});
+sidebarOverlay.addEventListener('click', () => {
+  sidebar.classList.add('collapsed');
+  sidebarOverlay.classList.remove('visible');
+  localStorage.setItem('jarvisSidebarHidden', 'true');
+});
+
+// ── Sidebar Search ──
+$('sessionSearch').addEventListener('input', () => {
+  const q = $('sessionSearch').value.trim().toLowerCase();
+  document.querySelectorAll('.session-item').forEach(el => {
+    el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+// ── Theme Toggle ──
+$('themeToggleBtn').addEventListener('click', () => {
+  const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  localStorage.setItem('jarvisTheme', next);
+});
+
+// ── Event Feed Toggle ──
+$('toggleEventsBtn').addEventListener('click', () => {
+  $('eventFeed').classList.toggle('visible');
+});
+$('eventFeedClose').addEventListener('click', () => {
+  $('eventFeed').classList.remove('visible');
+});
+
+// ── Scroll-to-bottom button ──
+const convScroll = $('conversationScroll');
+const scrollBtn = $('scrollBottomBtn');
+convScroll.addEventListener('scroll', () => {
+  const isAtBottom = convScroll.scrollHeight - convScroll.scrollTop - convScroll.clientHeight < 80;
+  scrollBtn.classList.toggle('visible', !isAtBottom);
+});
+scrollBtn.addEventListener('click', () => {
+  scrollToBottom();
+});
+
+// ── Stream cancel ──
+function cancelChatStreaming() {
+  if (_streamTimer) {
+    clearTimeout(_streamTimer);
+    _streamTimer = null;
+  }
+}
+
+// ── Conversation snapshot ──
+function applyConversationSnapshot(conv) {
+  cancelChatStreaming();
+  clearActiveProgressBubble();
+  const list = $('conversationList');
+  list.innerHTML = '';
+  if (!conv || !conv.length) {
+    metrics.messages = 0;
+    $('metMessages').textContent = '0';
+    renderLiveProgressBubble(currentSessionId);
+    return;
+  }
+  conv.forEach(m => {
+    if (m.type === 'image' && m.url) {
+      addConversationImage(m.url);
+    } else if (m.type === 'progress' && m.content) {
+      addConversationProgressMessage(m.content);
+    } else if (m.content) {
+      addConversationMessage(m.role, m.content, false);
+    }
+  });
+  metrics.messages = conv.length;
+  $('metMessages').textContent = metrics.messages;
+  renderLiveProgressBubble(currentSessionId);
+}
+
+// ── Session Management ──
+async function refreshSessionList() {
+  try {
+    const r = await fetch('/api/chat-sessions');
+    const data = await r.json();
+    const sessions = data.sessions || [];
+    const ids = new Set(sessions.map(s => s.id));
+    if (!ids.has(currentSessionId)) {
+      currentSessionId = DEFAULT_SESSION_ID;
+      localStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+    }
+    const scroll = $('sessionScroll');
+    scroll.innerHTML = '';
+    sessions.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'session-item' + (s.id === DEFAULT_SESSION_ID ? ' default' : '');
+      if (s.id === currentSessionId) row.classList.add('active');
+      row.dataset.id = s.id;
+      const label = document.createElement('span');
+      label.textContent = s.title || s.id;
+      row.appendChild(label);
+      if (s.id !== DEFAULT_SESSION_ID) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'session-item-del';
+        del.title = 'מחק שיחה';
+        del.innerHTML = '&#128465;';
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteSession(s.id);
+        });
+        row.appendChild(del);
+      }
+      row.addEventListener('click', () => selectSession(s.id));
+      scroll.appendChild(row);
+    });
+  } catch {}
+}
+
+async function selectSession(id) {
+  if (id === currentSessionId) return;
+  currentSessionId = id;
+  localStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+  cancelChatStreaming();
+  $('conversationList').innerHTML = '';
+  metrics.messages = 0;
+  $('metMessages').textContent = '0';
+  await refreshSessionList();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'watch_session', session_id: id }));
+  } else {
+    try {
+      const r = await fetch('/api/conversation?session_id=' + encodeURIComponent(id));
+      const conv = await r.json();
+      applyConversationSnapshot(conv);
+    } catch {}
+  }
+}
+
+async function createSession() {
+  try {
+    const r = await fetch('/api/chat-sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await r.json();
+    if (data.id) await selectSession(data.id);
+  } catch {}
+}
+
+async function deleteSession(id) {
+  if (id === DEFAULT_SESSION_ID) return;
+  try {
+    const r = await fetch('/api/chat-sessions/' + encodeURIComponent(id), { method: 'DELETE' });
+    const data = await r.json();
+    if (data.ok) {
+      if (id === currentSessionId) await selectSession(DEFAULT_SESSION_ID);
+      else await refreshSessionList();
+    }
+  } catch {}
+}
+
+function chatEventForThisSession(ev) {
+  const sid = ev.session_id;
+  if (sid == null || sid === undefined) return true;
+  return sid === currentSessionId;
+}
+
+// ── WebSocket ──
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const q = encodeURIComponent(currentSessionId);
+  ws = new WebSocket(`${proto}//${location.host}/ws?session=${q}`);
+
+  ws.onopen = () => {
+    $('connDot').classList.add('connected');
+    $('connDot').title = 'Connected';
+    clearTimeout(reconnectTimer);
+  };
+
+  ws.onclose = () => {
+    $('connDot').classList.remove('connected');
+    $('connDot').title = 'Disconnected';
+    reconnectTimer = setTimeout(connect, 2000);
+  };
+
+  ws.onerror = () => ws.close();
+
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    handleMessage(data);
+  };
+}
+
+function handleMessage(data) {
+  if (data.type === 'snapshot') {
+    if (data.status) updateStatus(data.status);
+    if (data.recent_events) data.recent_events.forEach(addEvent);
+    if (data.session_id != null && data.session_id !== currentSessionId) {
+      if (data.provider) setProviderDisplay(data.provider);
+      return;
+    }
+    if (Array.isArray(data.conversation)) {
+      applyConversationSnapshot(data.conversation);
+    }
+    if (data.provider) setProviderDisplay(data.provider);
+    return;
+  }
+  handleEvent(data);
+}
+
+async function pushBrowserNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch {}
+  }
+  if (Notification.permission !== 'granted') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.active) {
+        reg.active.postMessage({ type: 'show-notification', title, body, tag: 'jarvis-live' });
+        return;
+      }
+    }
+  } catch {}
+  try { new Notification(title, { body }); } catch {}
+}
+
+function handleEvent(ev) {
+  if (ev.type === 'chat.session_deleted') {
+    clearConversationProgressState(ev.session_id);
+    if (ev.session_id === currentSessionId) selectSession(DEFAULT_SESSION_ID);
+    else refreshSessionList();
+    return;
+  }
+  if (!ev.type.startsWith('chat.')) addEvent(ev);
+
+  switch(ev.type) {
+    case 'llm.start': {
+      metrics.llmCalls++;
+      $('metLlmCalls').textContent = metrics.llmCalls;
+      const thinkLabel = ev.round > 0 ? `Thinking (round ${ev.round + 1})...` : 'Thinking...';
+      setStatus('thinking', ev.round > 0 ? `Round ${ev.round + 1}` : '');
+      recordConversationProgress(ev.session_id, thinkLabel);
+      break;
+    }
+
+    case 'llm.complete':
+      if (currentStatusState !== 'working') setStatus('idle', '');
+      break;
+
+    case 'tool.start': {
+      metrics.toolCalls++;
+      $('metToolCalls').textContent = metrics.toolCalls;
+      setStatus('tool', ev.tool);
+      const parts = (ev.tool || '').split('_');
+      const toolLabel = parts.length >= 2
+        ? `Running: ${parts[0]} → ${parts.slice(1).join('_')}`
+        : `Running: ${ev.tool}`;
+      recordConversationProgress(ev.session_id, toolLabel);
+      break;
+    }
+
+    case 'tool.complete':
+      if (ev.has_error) {
+        metrics.errors++;
+        $('metErrors').textContent = metrics.errors;
+      }
+      if (currentStatusState !== 'working') setStatus('idle', '');
+      break;
+
+    case 'task.progress':
+      setStatus('working', ev.summary || '');
+      recordConversationProgress(ev.session_id, ev.summary || '');
+      break;
+
+    case 'task.progress.complete':
+      completeConversationProgress(ev.session_id);
+      break;
+
+    case 'plan.deciding':
+      setStatus('planning', 'Analyzing...');
+      break;
+
+    case 'plan.created':
+      planSteps = ev.steps || [];
+      currentStep = -1;
+      planTotal = planSteps.length;
+      renderPlan();
+      break;
+
+    case 'plan.start':
+      $('planGoal').textContent = ev.goal || '';
+      planTotal = ev.total_steps || planTotal;
+      $('planOverlay').classList.add('active');
+      break;
+
+    case 'step.start':
+      currentStep = (ev.current || 1) - 1;
+      setStatus('step', `${ev.current}/${ev.total}: ${ev.description || ''}`);
+      renderPlan();
+      break;
+
+    case 'step.complete':
+      if (planSteps[currentStep]) planSteps[currentStep]._done = true;
+      renderPlan();
+      if (ev.current === ev.total) {
+        setTimeout(() => $('planOverlay').classList.remove('active'), 3000);
+      }
+      break;
+
+    case 'step.failed':
+      if (planSteps[currentStep]) planSteps[currentStep]._failed = true;
+      metrics.errors++;
+      $('metErrors').textContent = metrics.errors;
+      renderPlan();
+      break;
+
+    case 'provider.changed':
+      if (ev.provider) setProviderDisplay(ev.provider);
+      break;
+
+    case 'model.route':
+      if (ev.provider || ev.model) {
+        setStatus('thinking', `${ev.task_type || 'task'} -> ${ev.provider || ''} ${ev.model || ''}`.trim());
+      }
+      break;
+
+    case 'chat.user':
+      if (!chatEventForThisSession(ev)) break;
+      if (!isSending && ev.content) {
+        addConversationMessage('user', ev.content, false);
+        metrics.messages++;
+        $('metMessages').textContent = metrics.messages;
+      }
+      break;
+
+    case 'chat.assistant':
+      completeConversationProgress(ev.session_id);
+      setStatus('idle', '');
+      if (!chatEventForThisSession(ev)) break;
+      if (!isSending && ev.content) {
+        addConversationMessage('assistant', ev.content, false);
+        metrics.messages++;
+        $('metMessages').textContent = metrics.messages;
+        playTTS(ev.content);
+      }
+      break;
+
+    case 'chat.assistant.stream_start':
+    case 'chat.assistant.chunk':
+    case 'chat.assistant.stream_end':
+      // Streaming disabled — full response shown via HTTP reply
+      break;
+
+    case 'chat.image':
+      completeConversationProgress(ev.session_id);
+      if (!chatEventForThisSession(ev)) break;
+      if (ev.url) {
+        addConversationImage(ev.url);
+        metrics.messages++;
+        $('metMessages').textContent = metrics.messages;
+      }
+      break;
+
+    case 'notification':
+      if (ev.title || ev.message) {
+        pushBrowserNotification(ev.title || 'Jarvis', ev.message || '');
+      }
+      break;
+  }
+}
+
+// ── Status ──
+const statusIcons = {
+  idle: '\u23F8', thinking: '\uD83E\uDDE0', tool: '\u26A1', planning: '\uD83D\uDCCB',
+  error: '\u274C', step: '\u25B6', working: '\u23F3', 'executing plan': '\uD83D\uDCCB',
+};
+
+let currentStatusState = 'idle';
+function setStatus(state, detail) {
+  currentStatusState = state;
+  const indicator = $('statusIndicator');
+  indicator.className = 'status-indicator status-' + state.replace(' ', '-');
+  $('statusIcon').textContent = statusIcons[state] || '\u23F8';
+  $('statusText').textContent = state.charAt(0).toUpperCase() + state.slice(1);
+  $('statusDetail').textContent = detail || '';
+
+  // Show/hide abort button
+  const isActive = state !== 'idle' && state !== 'error';
+  $('abortBtn').style.display = isActive ? 'flex' : 'none';
+}
+
+function updateStatus(s) {
+  setStatus(s.state || 'idle', s.detail || '');
+}
+
+// ── Events ──
+function addEvent(ev) {
+  if (!ev.type) return;
+  const list = $('eventList');
+  const el = document.createElement('div');
+  el.className = 'event-item';
+
+  const typeClass = ev.type.startsWith('llm') ? 'llm'
+    : ev.type.startsWith('tool') ? 'tool'
+    : ev.type.startsWith('plan') ? 'plan'
+    : ev.type.startsWith('step') ? (ev.type.includes('fail') ? 'error' : 'step')
+    : 'plan';
+
+  const time = ev.ts ? new Date(ev.ts * 1000).toLocaleTimeString('he-IL') : '';
+  let detail = '';
+
+  if (ev.type === 'tool.start') {
+    detail = `<strong>${ev.tool}</strong>`;
+    if (ev.args && Object.keys(ev.args).length) {
+      const argStr = Object.entries(ev.args).map(([k,v]) => `${k}: ${v}`).join(', ');
+      detail += `<br><span style="color:var(--text2);font-size:10px">${argStr}</span>`;
+    }
+  } else if (ev.type === 'tool.complete') {
+    detail = ev.tool + (ev.has_error ? ' <span style="color:var(--red)">FAILED</span>' : ' <span style="color:var(--green)">OK</span>');
+  } else if (ev.type === 'step.start') {
+    detail = `Step ${ev.current}/${ev.total}: ${ev.description || ''}`;
+  } else if (ev.type === 'step.failed') {
+    detail = ev.error || '';
+  } else if (ev.type === 'plan.created') {
+    detail = `${(ev.steps || []).length} steps`;
+  } else if (ev.type === 'llm.start') {
+    detail = ev.round > 0 ? `Round ${ev.round + 1}` : 'Starting...';
+  } else if (ev.type === 'task.progress') {
+    detail = ev.summary || '';
+  }
+
+  el.innerHTML = `
+    <span class="event-time">${time}</span>
+    <span class="event-type ${typeClass}">${ev.type}</span>
+    ${detail ? `<div class="event-detail">${detail}</div>` : ''}
+  `;
+
+  list.prepend(el);
+  while (list.children.length > 100) list.lastChild.remove();
+}
+
+// ── Conversation ──
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function scrollToBottom() {
+  const scroll = $('conversationScroll');
+  scroll.scrollTo({ top: scroll.scrollHeight, behavior: 'smooth' });
+}
+
+function getTimestamp() {
+  return new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── TTS (ElevenLabs via server) ──
+let _ttsEnabled = true;
+let _audioCtx = null;
+let _ttsSourceNode = null;
+
+// Call on first user gesture so AudioContext is unlocked for later async playback
+function _ensureAudioCtx() {
+  if (_audioCtx) return;
+  try {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Play a silent buffer to fully unlock the context
+    const buf = _audioCtx.createBuffer(1, 1, 22050);
+    const src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_audioCtx.destination);
+    src.start(0);
+  } catch (e) { console.warn('AudioContext init failed:', e); }
+}
+
+async function playTTS(text) {
+  if (!_ttsEnabled || !text) return;
+  try {
+    // Strip markdown for cleaner speech
+    const clean = text.replace(/[#*_`~\[\]()>|\\-]/g, '').replace(/\n+/g, '. ').trim();
+    if (!clean) return;
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: clean }),
+    });
+    if (!r.ok) return;
+    const arrayBuffer = await r.arrayBuffer();
+    if (!_audioCtx) return;
+    if (_ttsSourceNode) { try { _ttsSourceNode.stop(); } catch (_) {} _ttsSourceNode.disconnect(); }
+    const audioBuffer = await _audioCtx.decodeAudioData(arrayBuffer);
+    _ttsSourceNode = _audioCtx.createBufferSource();
+    _ttsSourceNode.buffer = audioBuffer;
+    _ttsSourceNode.connect(_audioCtx.destination);
+    _ttsSourceNode.start(0);
+  } catch (e) {
+    console.warn('TTS playback error:', e);
+  }
+}
+
+function renderMarkdown(text) {
+  if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+    try {
+      return marked.parse(text);
+    } catch {
+      return escapeHtml(text);
+    }
+  }
+  return escapeHtml(text);
+}
+
+function normalizeSessionId(sessionId) {
+  return sessionId == null || sessionId === undefined ? DEFAULT_SESSION_ID : sessionId;
+}
+
+function progressLinesFromContent(content) {
+  return String(content || '')
+    .split(/\r?\n+/)
+    .map(line => line.replace(/^\s*-\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function clearActiveProgressBubble() {
+  if (activeProgressBubble) activeProgressBubble.remove();
+  activeProgressBubble = null;
+  activeProgressSessionId = null;
+}
+
+function createProgressMessageElement(lines, live) {
+  const el = document.createElement('div');
+  el.className = `msg assistant progress${live ? ' live' : ' completed'}`;
+  el.innerHTML = `
+    <div class="msg-role">Jarvis <span class="msg-progress-status">${live ? 'Live' : 'Progress'}</span></div>
+    <div class="msg-body msg-progress-lines"></div>
+  `;
+  const body = el.querySelector('.msg-progress-lines');
+  lines.forEach(line => {
+    const row = document.createElement('div');
+    row.className = 'msg-progress-line';
+    row.textContent = line;
+    body.appendChild(row);
+  });
+  const ts = document.createElement('div');
+  ts.className = 'msg-timestamp';
+  ts.textContent = getTimestamp();
+  el.appendChild(ts);
+  return el;
+}
+
+function ensureLiveProgressBubble(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  if (sid !== currentSessionId) return null;
+  if (activeProgressBubble && activeProgressSessionId === sid) {
+    return activeProgressBubble;
+  }
+  clearActiveProgressBubble();
+  const state = progressStateBySession[sid];
+  if (!state || !state.lines.length) return null;
+  const el = createProgressMessageElement(state.lines, true);
+  $('conversationList').appendChild(el);
+  activeProgressBubble = el;
+  activeProgressSessionId = sid;
+  scrollToBottom();
+  return el;
+}
+
+function renderLiveProgressBubble(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  if (sid !== currentSessionId) return;
+  const state = progressStateBySession[sid];
+  if (!state || !state.lines.length || state.completed) return;
+  const el = ensureLiveProgressBubble(sid);
+  if (!el) return;
+  const body = el.querySelector('.msg-progress-lines');
+  body.innerHTML = '';
+  state.lines.forEach(line => {
+    const row = document.createElement('div');
+    row.className = 'msg-progress-line';
+    row.textContent = line;
+    body.appendChild(row);
+  });
+  scrollToBottom();
+}
+
+function addConversationProgressMessage(content) {
+  const lines = progressLinesFromContent(content);
+  if (!lines.length) return;
+  const list = $('conversationList');
+  const el = createProgressMessageElement(lines, false);
+  list.appendChild(el);
+  scrollToBottom();
+}
+
+function recordConversationProgress(sessionId, summary) {
+  const sid = normalizeSessionId(sessionId);
+  const text = String(summary || '').trim();
+  if (!text) return;
+  let state = progressStateBySession[sid];
+  if (!state || state.completed) {
+    if (state && state.completed && activeProgressSessionId === sid) {
+      activeProgressBubble = null;
+      activeProgressSessionId = null;
+    }
+    state = { lines: [], completed: false };
+    progressStateBySession[sid] = state;
+  }
+  if (state.lines[state.lines.length - 1] === text) return;
+  state.lines.push(text);
+  while (state.lines.length > 12) state.lines.shift();
+  renderLiveProgressBubble(sid);
+}
+
+function completeConversationProgress(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  const state = progressStateBySession[sid];
+  if (!state || state.completed) return;
+  state.completed = true;
+  if (activeProgressBubble && activeProgressSessionId === sid) {
+    activeProgressBubble.classList.remove('live');
+    activeProgressBubble.classList.add('completed');
+    const badge = activeProgressBubble.querySelector('.msg-progress-status');
+    if (badge) badge.textContent = 'Done';
+  }
+}
+
+function clearConversationProgressState(sessionId) {
+  const sid = normalizeSessionId(sessionId);
+  delete progressStateBySession[sid];
+  if (activeProgressSessionId === sid) {
+    clearActiveProgressBubble();
+  }
+}
+
+function addConversationImage(imageUrl) {
+  if (!imageUrl) return;
+  const list = $('conversationList');
+  const el = document.createElement('div');
+  el.className = 'msg assistant msg-image';
+  el.innerHTML = '<div class="msg-role">Jarvis</div>';
+  const img = document.createElement('img');
+  img.className = 'msg-attached-image';
+  img.src = imageUrl;
+  img.alt = 'תמונה';
+  img.loading = 'lazy';
+  img.style.maxWidth = 'min(100%, 520px)';
+  img.style.borderRadius = '10px';
+  img.style.display = 'block';
+  img.style.marginTop = '6px';
+  el.appendChild(img);
+  const ts = document.createElement('div');
+  ts.className = 'msg-timestamp';
+  ts.textContent = getTimestamp();
+  el.appendChild(ts);
+  list.appendChild(el);
+  scrollToBottom();
+}
+
+function addConversationMessage(role, content, stream) {
+  if (!content) return;
+  const list = $('conversationList');
+  const el = document.createElement('div');
+  el.className = `msg ${role}`;
+
+  const roleLabel = role === 'user' ? 'You' : 'Jarvis';
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'msg-body';
+
+  el.innerHTML = `<div class="msg-role">${roleLabel}</div>`;
+  el.appendChild(bodyDiv);
+
+  const ts = document.createElement('div');
+  ts.className = 'msg-timestamp';
+  ts.textContent = getTimestamp();
+  el.appendChild(ts);
+
+  list.appendChild(el);
+  scrollToBottom();
+
+  if (stream && role === 'assistant') {
+    typewriterEffect(bodyDiv, content);
+  } else if (role === 'assistant') {
+    bodyDiv.innerHTML = renderMarkdown(content);
+  } else {
+    bodyDiv.textContent = content;
+  }
+}
+
+/**
+ * Typewriter: reveals text word-by-word with natural pace.
+ * Once complete, renders as markdown.
+ */
+function typewriterEffect(element, text) {
+  const words = text.split(/(\s+)/);
+  let idx = 0;
+  const total = words.length;
+  const baseDelay = total > 80 ? 18 : total > 30 ? 28 : 38;
+
+  element.textContent = '';
+  element.classList.add('streaming');
+
+  function tick() {
+    if (idx >= total) {
+      element.classList.remove('streaming');
+      // Re-render as markdown once streaming is done
+      element.innerHTML = renderMarkdown(text);
+      return;
+    }
+    const chunk = total > 120 ? 3 : total > 50 ? 2 : 1;
+    for (let c = 0; c < chunk && idx < total; c++, idx++) {
+      element.textContent += words[idx];
+    }
+    scrollToBottom();
+    _streamTimer = setTimeout(tick, baseDelay);
+  }
+  tick();
+}
+
+// ── WS Streaming helpers ──
+let _wsStreamEl = null;
+let _wsStreamText = '';
+let _wsStreamMarkdownTimer = null;
+let _wsStreamStartedForRequest = false;
+/** False after stream_end if no tokens arrived (WS empty but HTTP may still have full text). */
+let _lastAssistantStreamHadContent = true;
+
+function _startStreamingMessage() {
+  cancelChatStreaming();
+  const list = $('conversationList');
+  const el = document.createElement('div');
+  el.className = 'msg assistant';
+  el.innerHTML = '<div class="msg-role">Jarvis</div>';
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'msg-body streaming';
+  bodyDiv.setAttribute('dir', 'auto');
+  el.appendChild(bodyDiv);
+  const ts = document.createElement('div');
+  ts.className = 'msg-timestamp';
+  ts.textContent = getTimestamp();
+  el.appendChild(ts);
+  list.appendChild(el);
+  _wsStreamEl = bodyDiv;
+  _wsStreamText = '';
+  _wsStreamStartedForRequest = true;
+  scrollToBottom();
+}
+
+function _appendStreamChunk(chunk) {
+  if (!_wsStreamEl) return;
+  _wsStreamText += chunk;
+  _wsStreamEl.textContent = _wsStreamText;
+  scrollToBottom();
+  // Debounced markdown re-render while streaming
+  if (_wsStreamMarkdownTimer) clearTimeout(_wsStreamMarkdownTimer);
+  _wsStreamMarkdownTimer = setTimeout(() => {
+    if (_wsStreamEl) _wsStreamEl.innerHTML = renderMarkdown(_wsStreamText);
+    scrollToBottom();
+  }, 300);
+}
+
+function _finalizeStreamingMessage() {
+  if (_wsStreamMarkdownTimer) clearTimeout(_wsStreamMarkdownTimer);
+  _lastAssistantStreamHadContent = Boolean(_wsStreamText && _wsStreamText.trim());
+  if (_wsStreamEl) {
+    _wsStreamEl.classList.remove('streaming');
+    _wsStreamEl.innerHTML = renderMarkdown(_wsStreamText);
+    scrollToBottom();
+  }
+  _wsStreamEl = null;
+  _wsStreamText = '';
+  // _wsStreamStartedForRequest stays true until sendMessage finishes (prevents HTTP dupe)
+  metrics.messages++;
+  $('metMessages').textContent = metrics.messages;
+}
+
+// ── Send Message ──
+async function sendMessage() {
+  const input = $('chatInput');
+  const text = input.value.trim();
+  if (!text || isSending) return;
+
+  _ensureAudioCtx();
+  isSending = true;
+  input.value = '';
+  input.disabled = true;
+  $('sendBtn').disabled = true;
+  $('typingIndicator').classList.add('active');
+
+  addConversationMessage('user', text, false);
+  metrics.messages++;
+  $('metMessages').textContent = metrics.messages;
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, session_id: currentSessionId }),
+    });
+    const data = await r.json();
+    const emptyModelMsg =
+      'המודל לא החזיר טקסט. ודא ש-Ollama רץ וש־JARVIS_OLLAMA_MODEL ב-.env תואם ל־ollama list.';
+    if (data.error) {
+      completeConversationProgress(currentSessionId);
+      addConversationMessage('assistant', `Error: ${data.error}`, false);
+    } else if (Object.prototype.hasOwnProperty.call(data, 'response')) {
+      let resp = data.response;
+      if (typeof resp !== 'string') {
+        resp = resp == null ? '' : String(resp);
+      }
+      const toShow = resp.trim() || emptyModelMsg;
+      completeConversationProgress(currentSessionId);
+      // If WS streaming already rendered it, skip adding again — unless stream had no visible text
+      if (!_wsStreamStartedForRequest) {
+        addConversationMessage('assistant', toShow, false);
+        metrics.messages++;
+        $('metMessages').textContent = metrics.messages;
+      } else if (!_lastAssistantStreamHadContent) {
+        const list = $('conversationList');
+        const bodies = list.querySelectorAll('.msg.assistant .msg-body');
+        const lastBody = bodies[bodies.length - 1];
+        if (lastBody) {
+          lastBody.classList.remove('streaming');
+          lastBody.innerHTML = renderMarkdown(toShow);
+        } else {
+          addConversationMessage('assistant', toShow, false);
+        }
+      }
+      _wsStreamStartedForRequest = false;
+      refreshSessionList();
+      // Play TTS for the response
+      if (data.response) playTTS(data.response);
+    }
+  } catch (err) {
+    completeConversationProgress(currentSessionId);
+    addConversationMessage('assistant', `Connection error: ${err.message}`, false);
+  } finally {
+    isSending = false;
+    _wsStreamStartedForRequest = false;
+    input.disabled = false;
+    $('sendBtn').disabled = false;
+    $('typingIndicator').classList.remove('active');
+    input.focus();
+  }
+}
+
+// ── Quick Action ──
+function sendQuickAction(message, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.style.opacity = '0.5';
+    setTimeout(() => { btnEl.disabled = false; btnEl.style.opacity = ''; }, 3000);
+  }
+  const input = $('chatInput');
+  input.value = message;
+  sendMessage();
+  setTimeout(scrollToBottom, 100);
+}
+
+async function loadQuickActions() {
+  const bar = $('quickActionsBar');
+  try {
+    const r = await fetch('/api/quick-actions');
+    const data = await r.json();
+    const actions = data.actions || [];
+    bar.innerHTML = '';
+    actions.forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = 'quick-action-btn';
+      btn.textContent = a.label;
+      btn.addEventListener('click', () => sendQuickAction(a.message, btn));
+      bar.appendChild(btn);
+    });
+  } catch {
+    bar.innerHTML = '';
+  }
+}
+
+$('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+$('sendBtn').addEventListener('click', sendMessage);
+
+// ── Abort ──
+$('abortBtn').addEventListener('click', async () => {
+  completeConversationProgress(currentSessionId);
+  try {
+    await fetch('/api/chat/abort', { method: 'POST' });
+  } catch {}
+});
+
+// ── Voice Input (Web Speech API) ──
+let recognition = null;
+let isRecording = false;
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'he-IL';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    $('chatInput').value = transcript;
+    sendMessage();
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    $('voiceBtn').classList.remove('recording');
+  };
+
+  recognition.onerror = () => {
+    isRecording = false;
+    $('voiceBtn').classList.remove('recording');
+  };
+}
+
+$('voiceBtn').addEventListener('click', () => {
+  if (!recognition) return;
+  if (isRecording) {
+    recognition.stop();
+    isRecording = false;
+    $('voiceBtn').classList.remove('recording');
+  } else {
+    recognition.start();
+    isRecording = true;
+    $('voiceBtn').classList.add('recording');
+  }
+});
+
+// ── Plan Render ──
+function renderPlan() {
+  if (!planSteps.length) return;
+  $('planOverlay').classList.add('active');
+
+  const doneCount = planSteps.filter(s => s._done).length;
+  const pct = planTotal > 0 ? Math.round((doneCount / planTotal) * 100) : 0;
+  $('planProgressFill').style.width = pct + '%';
+
+  const list = $('planStepList');
+  list.innerHTML = planSteps.map((step, i) => {
+    const text = typeof step === 'string' ? step : (step.description || step.action || JSON.stringify(step));
+    const cls = step._failed ? 'failed' : step._done ? 'done' : i === currentStep ? 'active' : '';
+    const icon = step._failed ? '\u2717' : step._done ? '\u2713' : (i + 1);
+    return `<li class="plan-step-item ${cls}">
+      <span class="plan-step-num">${icon}</span>
+      <span class="plan-step-desc">${escapeHtml(text)}</span>
+    </li>`;
+  }).join('');
+}
+
+// ── Provider Display & Switching ──
+function setProviderDisplay(info) {
+  $('providerName').textContent = info.name || '\u2014';
+  $('providerModel').textContent = info.model ? `(${info.model})` : '';
+}
+
+let dropdownOpen = false;
+
+function toggleProviderDropdown() {
+  dropdownOpen = !dropdownOpen;
+  if (dropdownOpen) {
+    loadProviders();
+    $('providerDropdown').classList.add('open');
+  } else {
+    $('providerDropdown').classList.remove('open');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.provider-btn') && !e.target.closest('.provider-dropdown')) {
+    $('providerDropdown').classList.remove('open');
+    dropdownOpen = false;
+  }
+});
+
+async function loadProviders() {
+  try {
+    const r = await fetch('/api/providers');
+    const data = await r.json();
+    const dd = $('providerDropdown');
+    dd.innerHTML = data.providers.map(p =>
+      `<div class="provider-option ${p.active ? 'active' : ''}" onclick="switchProvider('${p.id}')">${p.label}</div>`
+    ).join('');
+  } catch {}
+}
+
+async function switchProvider(id) {
+  $('providerDropdown').classList.remove('open');
+  dropdownOpen = false;
+  try {
+    const r = await fetch('/api/provider', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: id }),
+    });
+    const data = await r.json();
+    if (data.provider) {
+      setProviderDisplay(data.provider);
+    } else if (data.error) {
+      alert(data.error);
+    }
+  } catch (err) {
+    alert('Failed to switch: ' + err.message);
+  }
+}
+
+// ── Status Widgets ──
+async function refreshStatusWidgets() {
+  try {
+    const r = await fetch('/api/status');
+    const data = await r.json();
+    if (data.lights !== undefined) $('widgetLights').textContent = data.lights;
+    if (data.music !== undefined) $('widgetMusic').textContent = data.music;
+    if (data.tv !== undefined) $('widgetTV').textContent = data.tv;
+    if (data.home !== undefined) $('widgetHome').textContent = data.home;
+    if (data.schedule !== undefined) $('widgetSchedule').textContent = data.schedule;
+  } catch {
+    // API might not exist yet; leave defaults
+  }
+}
+
+// ── Uptime ──
+setInterval(() => {
+  const sec = Math.floor((Date.now() - startTime) / 1000);
+  const m = Math.floor(sec / 60);
+  const h = Math.floor(m / 60);
+  $('uptimeLabel').textContent = `Session: ${h}h ${m % 60}m ${sec % 60}s`;
+}, 1000);
+
+// ── Periodic metrics refresh ──
+async function refreshMetrics() {
+  try {
+    const r = await fetch('/api/metrics');
+    const data = await r.json();
+    if (data.counters) {
+      if (data.counters.llm_calls_total) {
+        metrics.llmCalls = Math.max(metrics.llmCalls, data.counters.llm_calls_total);
+        $('metLlmCalls').textContent = metrics.llmCalls;
+      }
+      if (data.counters.tool_calls_total) {
+        metrics.toolCalls = Math.max(metrics.toolCalls, data.counters.tool_calls_total);
+        $('metToolCalls').textContent = metrics.toolCalls;
+      }
+      if (data.counters.llm_errors_total || data.counters.tool_errors_total) {
+        const e = (data.counters.llm_errors_total || 0) + (data.counters.tool_errors_total || 0);
+        metrics.errors = Math.max(metrics.errors, e);
+        $('metErrors').textContent = metrics.errors;
+      }
+    }
+    if (data.histograms && data.histograms.llm_latency_ms) {
+      const avg = data.histograms.llm_latency_ms.avg;
+      $('metAvgLatency').textContent = avg ? Math.round(avg) + 'ms' : '\u2014';
+    }
+  } catch {}
+}
+setInterval(refreshMetrics, 10000);
+
+// ── Refresh status widgets every 30s ──
+setInterval(refreshStatusWidgets, 30000);
+
+// ── Fetch provider on load ──
+async function fetchProvider() {
+  try {
+    const r = await fetch('/api/provider');
+    const data = await r.json();
+    setProviderDisplay(data);
+  } catch {}
+}
+
+// ── Start ──
+$('newSessionBtn').addEventListener('click', () => createSession());
+refreshSessionList();
+connect();
+refreshMetrics();
+fetchProvider();
+refreshStatusWidgets();
+loadQuickActions();
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
